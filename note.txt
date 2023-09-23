@@ -1,0 +1,21 @@
+MODELLI:
+    alexnet
+    vgg16 / 32 -> numero sta per gli hidden (da verificare)
+
+COSA PROVARE PER MODELLO:
+
+    1) setto modello
+
+    2) setto ottimizzatore (quindi iperparametri), dataloader, funzione accuracy 
+
+    3) numero epoche (minor numero di epoche con loss piu bassa in validation) ogni epoca fai train/validation
+
+    4) cambio iperparametri e torno a 3)
+
+    5) test
+
+    (?) data augmentation RandomPerspective & RandomRotation (cosa succede se le faccio / non faccio)
+
+    (?) diversi ottimizzatori (stochastic descent, adam) (e tunnare iperparametri)
+
+    (?) early stopping (se la loss del validation non diminuisce per tot epoche allora mi fermo e ritorno il modello con loss minore)
