@@ -7,6 +7,8 @@ import gc
 
 import os
 
+from typing import Union, Tuple
+
 response_transform={n:chr(n+65) for n in range(0,26)}
 
 def get_dataset(path:str):
@@ -55,16 +57,20 @@ def save_dataframes(train_X:pd.DataFrame, test_X:pd.DataFrame,
 
     test_X.to_parquet(dfs_path+"/test_X.parquet")
     test_Y.to_frame().to_parquet(dfs_path+"/test_Y.parquet")
-
-def load_dataframes():
+    
+    
+def load_dataframes(is_train:bool=True)->Tuple[pd.DataFrame,pd.Series]:
+    
     dfs_path = os.getcwd()+"/../data/dataframes" 
     if not os.path.exists(dfs_path):
-        pass
+        raise FileNotFoundError("dataframes directory does not exist. Please execute dataset notebook first.")
     
-    train_X = pd.read_parquet(dfs_path+"/train_X.parquet")
-    train_Y = pd.read_parquet(dfs_path+"/train_Y.parquet").squeeze()
+    if is_train:
+        dfs_path += "/train_"
+    else:
+        dfs_path += "/test_"
     
-    test_X = pd.read_parquet(dfs_path+"/test_X.parquet")
-    test_Y = pd.read_parquet(dfs_path+"/test_Y.parquet").squeeze()
+    X = pd.read_parquet(dfs_path+"X.parquet")
+    Y = pd.read_parquet(dfs_path+"Y.parquet").squeeze()
     
-    return train_X, train_Y, test_X, test_Y
+    return X, Y

@@ -3,3 +3,4 @@ tqdm
 numpy
 pandas
 matplotlib
+torch
