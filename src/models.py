@@ -3,12 +3,11 @@ import torch.optim as optim
 
 from utility import load_dataframes
 
-from sklearn.model_selection import KFold
-
 from data_transform import ImageDataset
 
 from torch.utils.data import DataLoader, random_split
 
+import numpy as np
 import torch
 
 loss = nn.CrossEntropyLoss()
@@ -49,12 +48,13 @@ def train(model, device, train_loader, optimizer, epoch):
     
     for batch_idx, (data, target) in enumerate(train_loader):
         
-        output = model(data.to(device))
+        output = model(data)
         
-        l = loss(output.to(device), target.to(device))
+        l = loss(output, target)
         
-        train_loss += l.item() 
-        #print(output)
+        train_loss += l.item()
+        
+        #print(data.shape, output.shape, target.shape)
         
         optimizer.zero_grad()
         l.backward()
@@ -126,7 +126,7 @@ def full_training():
     )
 
     val_loader = DataLoader(
-        dataset=val_dataset,
+        dataset = val_dataset,
         batch_size=batch_size,
     )
 
@@ -154,55 +154,4 @@ def full_training():
 
     print(accuracy)
 
-full_training()
-
-"""
-# Initialize the k-fold cross validation
-kf = KFold(n_splits=k_folds, shuffle=True)
-
-for fold, (train_idx, val_idx) in enumerate(kf.split(train_X)):
-    print(f"Fold {fold + 1}")
-    print("-------")
-
-    # Define the data loaders for the current fold
-    train_loader = DataLoader(
-        dataset = train_dataset,
-        batch_size = batch_size,
-        sampler = SubsetRandomSampler(train_idx.tolist()),
-    )
-    
-    val_loader = DataLoader(
-        dataset=train_dataset,
-        batch_size=batch_size,
-        sampler = SubsetRandomSampler(val_idx.tolist()),
-    )
-    
-    # Initialize the model and optimizer
-    model = Classifier().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.2, momentum=0.5)
-
-    # Train the model on the current fold
-    for epoch in range(1, 50):
-        train_loss = train(model, device, train_loader, optimizer, epoch)
-        print(epoch, train_loss)
-    
-    # Evaluate the model on the test set
-    model.eval()
-    val_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in val_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data.to(device))
-        
-            l = loss(output.to(device), target.to(device))
-            
-            val_loss += l.item()
-            import numpy as np
-            print(np.argmax(torch.softmax(output,dim=1)[1].cpu().numpy()),target[1])
-
-    val_loss /= len(val_loader.dataset)
-
-    # Print the results for the current fold
-    print(f"Test set: Average loss: {val_loss:.4f}")
-"""
+#full_training()

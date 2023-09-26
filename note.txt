@@ -14,8 +14,10 @@ COSA PROVARE PER MODELLO:
 
     5) test
 
-    (?) data augmentation RandomPerspective & RandomRotation (cosa succede se le faccio / non faccio)
+    tunning iperparametri
 
-    (?) diversi ottimizzatori (stochastic descent, adam) (e tunnare iperparametri)
+    diversi ottimizzatori (stochastic descent, adam)
 
     (?) early stopping (se la loss del validation non diminuisce per tot epoche allora mi fermo e ritorno il modello con loss minore)
+
+    (?) data augmentation RandomPerspective & RandomRotation (cosa succede se le faccio / non faccio)
