@@ -115,13 +115,13 @@ def k_fold_cross_validation(hyperparameters:dict, untrained_model, model_name = 
             batch_size = batch_size,
         )
 
-        accuracy = test(model,device,test_loader)
+        accuracy, test_loss = test(model,device,test_loader)
 
-        folds_bar.write(f"accuracy: {accuracy}\n")
+        folds_bar.write(f"accuracy: {accuracy}, test loss: {test_loss}\n, best val loss: {best_losses[fold-1]}")
         
         folds_bar.set_description(f'FOLD [{fold} / {k_folds}]')
         folds_bar.set_postfix(best_loss=best_loss)
 
     return np.average(best_losses)
 
-k_fold_cross_validation(hyperparameters, Classifier_3(),"prova")
+k_fold_cross_validation(hyperparameters, Classifier_3(),"prova",8)

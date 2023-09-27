@@ -130,9 +130,9 @@ def evaluate(model, device, val_loader, epoch):
     with torch.no_grad():
         for data, target in val_loader:
             
-            output = model(data.to(device))
+            output = model(data)
         
-            l = loss(output.to(device), target.to(device))
+            l = loss(output, target)
             
             val_loss += l.item()
 
@@ -144,19 +144,26 @@ def test(model, device, test_loader):
     model.eval()
     
     accuracy = 0
+    test_loss = 0
     with torch.inference_mode():
         for data, target in test_loader:
             
-            output = model(data.to(device))
+            output = model(data)
         
             output_prob = torch.softmax(output, dim=1)
             prediction = torch.argmax(output_prob, dim=1)
             
             accuracy += torch.sum(prediction==target).item()
             
+            l = loss(output, target)
+            
+            test_loss += l.item()
+            
         accuracy = accuracy/len(test_loader.dataset)
+        test_loss /= len(test_loader.dataset)
     
-    return accuracy
+    
+    return accuracy, test_loss
 
 def save_model(model, optimizer, training_loss_value, validation_loss_value, epoch, fold, model_name):
     
