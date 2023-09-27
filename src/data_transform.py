@@ -12,11 +12,9 @@ from typing import Tuple
 from PIL import Image
 
 class ImageDataset(Dataset):
-    def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, transform:bool = False) -> None:
+    def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, device:str="cuda", transform:bool = False) -> None:
         
         super().__init__()
-        
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self._X = torch.from_numpy(dataframe_X.to_numpy(dtype=np.float32).reshape(len(dataframe_X),1,28,28)).to(device)
         self._Y = torch.from_numpy(series_Y.to_numpy()).to(device)

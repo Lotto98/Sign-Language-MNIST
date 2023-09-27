@@ -10,29 +10,87 @@ from torch.utils.data import DataLoader, random_split
 import numpy as np
 import torch
 
+import os
+
 loss = nn.CrossEntropyLoss()
 
-class Classifier(nn.Module):
+class Classifier_3(nn.Module):
     def __init__(self):
-        super(Classifier, self).__init__()
+        super(Classifier_3, self).__init__()
+        
         self.Conv1 = nn.Sequential(
-        nn.Conv2d(1, 4, 5), # 24x24x4 
-        nn.MaxPool2d(2), # 12x12x4
-        nn.ReLU()
+            nn.Conv2d(1, 32, 5), #24x24x32
+            nn.MaxPool2d(2), #12x12x32
+            nn.ReLU()
         )
         self.Conv2 = nn.Sequential(
-        nn.Conv2d(4, 8, 5), # 8x8x8
-        nn.MaxPool2d(2),  # 4x4x8
-        nn.ReLU()
+            nn.Conv2d(32, 64, 5), #8x8x64
+            nn.MaxPool2d(2), #4x4x64
+            nn.ReLU()
+        )
+        self.Conv3 = nn.Sequential(
+            nn.Conv2d(64, 128, 3), #2x2x128
+            nn.MaxPool2d(2), #1x1x128
+            nn.ReLU()
         )
         
-        self.Linear1 = nn.Linear(8 * 4 * 4, 64)
+        self.Linear1 = nn.Linear(128, 64)
         self.Linear2 = nn.Linear(64, 32)
         self.Linear3 = nn.Linear(32, 25)
         
     def forward(self, x):
         x = self.Conv1(x)
         x = self.Conv2(x)
+        x = self.Conv3(x)
+        x = x.view(x.size(0), -1) #flatten
+        x = self.Linear1(x)
+        x = self.Linear2(x)
+        x = self.Linear3(x)
+        return x
+
+class Classifier_2(nn.Module):
+    def __init__(self):
+        super(Classifier_2, self).__init__()
+        self.Conv1 = nn.Sequential(
+        nn.Conv2d(1, 16, 5), # 24x24x16 
+        nn.MaxPool2d(2), # 12x12x16
+        nn.ReLU()
+        )
+        
+        self.Conv2 = nn.Sequential(
+        nn.Conv2d(16, 32, 5), # 8x8x32
+        nn.MaxPool2d(2),  # 4x4x32
+        nn.ReLU()
+        )
+        
+        self.Linear1 = nn.Linear(32 * 4 * 4, 64)
+        self.Linear2 = nn.Linear(64, 32)
+        self.Linear3 = nn.Linear(32, 25)
+        
+    def forward(self, x):
+        x = self.Conv1(x)
+        x = self.Conv2(x)
+        x = x.view(x.size(0), -1) #flatten
+        x = self.Linear1(x)
+        x = self.Linear2(x)
+        x = self.Linear3(x)
+        return x
+    
+class Classifier_1(nn.Module):
+    def __init__(self):
+        super(Classifier_1, self).__init__()
+        self.Conv1 = nn.Sequential(
+        nn.Conv2d(1, 8, 5), # 24x24x8 
+        nn.MaxPool2d(2), # 12x12x8
+        nn.ReLU()
+        )
+        
+        self.Linear1 = nn.Linear(8 * 12 * 12, 64)
+        self.Linear2 = nn.Linear(64, 32)
+        self.Linear3 = nn.Linear(32, 25)
+        
+    def forward(self, x):
+        x = self.Conv1(x)
         x = x.view(x.size(0), -1) #flatten
         x = self.Linear1(x)
         x = self.Linear2(x)
@@ -64,7 +122,7 @@ def train(model, device, train_loader, optimizer, epoch):
     
     return train_loss
 
-# Define the training function
+# Define the evaluation function
 def evaluate(model, device, val_loader, epoch):
     model.eval()
     
@@ -100,6 +158,26 @@ def test(model, device, test_loader):
     
     return accuracy
 
+def save_model(model, optimizer, training_loss_value, validation_loss_value, epoch, fold, model_name):
+    
+    folder = "best_models"
+    
+    model_path = os.getcwd()+"/../models/"+model_name+"/"
+    if not os.path.exists(model_path):
+        os.mkdir(model_path) 
+    
+    model_path += folder+"/"
+    if not os.path.exists(model_path):
+        os.mkdir(model_path) 
+    
+    torch.save({
+        'epoch': epoch,
+        'loss': training_loss_value,
+        'validation' : validation_loss_value,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict()
+        }, model_path+"fold_"+str(fold)+".tar")
+
 def spit_train(train_data, perc_val_size):
     
     train_size = len(train_data)
@@ -115,7 +193,7 @@ def full_training():
     batch_size = 64
 
     (train_X, train_y) = load_dataframes(is_train=True)
-    train_dataset = ImageDataset(train_X, train_y, False)
+    train_dataset = ImageDataset(train_X, train_y)
 
     train_dataset, val_dataset = spit_train(train_dataset,20)
 
@@ -143,7 +221,7 @@ def full_training():
 
     (test_X, test_y) = load_dataframes(is_train=False)
 
-    test_dataset = ImageDataset(test_X, test_y, False)
+    test_dataset = ImageDataset(test_X, test_y)
 
     test_loader = DataLoader(
         dataset = test_dataset,
