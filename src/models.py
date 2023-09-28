@@ -15,7 +15,7 @@ import os
 loss = nn.CrossEntropyLoss()
 
 class Classifier_3(nn.Module):
-    def __init__(self):
+    def __init__(self, n_neurons = 64):
         super(Classifier_3, self).__init__()
         
         self.Conv1 = nn.Sequential(
@@ -34,8 +34,8 @@ class Classifier_3(nn.Module):
             nn.ReLU()
         )
         
-        self.Linear1 = nn.Linear(128, 64)
-        self.Linear2 = nn.Linear(64, 32)
+        self.Linear1 = nn.Linear(128, n_neurons)
+        self.Linear2 = nn.Linear(n_neurons, 32)
         self.Linear3 = nn.Linear(32, 25)
         
     def forward(self, x):
@@ -96,7 +96,6 @@ class Classifier_1(nn.Module):
         x = self.Linear2(x)
         x = self.Linear3(x)
         return x
-
 
 # Define the training function
 def train(model, device, train_loader, optimizer, epoch):
