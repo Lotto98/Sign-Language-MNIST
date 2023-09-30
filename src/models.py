@@ -52,7 +52,7 @@ class Classifier_3(nn.Module):
         return x
 
 class Classifier_2(nn.Module):
-    def __init__(self):
+    def __init__(self, n_neurons = 512):
         super(Classifier_2, self).__init__()
         self.Conv1 = nn.Sequential(
         nn.Conv2d(1, 16, 5), # 24x24x16 
@@ -66,34 +66,13 @@ class Classifier_2(nn.Module):
         nn.ReLU()
         )
         
-        self.Linear1 = nn.Linear(32 * 4 * 4, 64)
-        self.Linear2 = nn.Linear(64, 32)
+        self.Linear1 = nn.Linear(32 * 4 * 4, n_neurons)
+        self.Linear2 = nn.Linear(n_neurons, 32)
         self.Linear3 = nn.Linear(32, 25)
         
     def forward(self, x):
         x = self.Conv1(x)
         x = self.Conv2(x)
-        x = x.view(x.size(0), -1) #flatten
-        x = self.Linear1(x)
-        x = self.Linear2(x)
-        x = self.Linear3(x)
-        return x
-    
-class Classifier_1(nn.Module):
-    def __init__(self):
-        super(Classifier_1, self).__init__()
-        self.Conv1 = nn.Sequential(
-        nn.Conv2d(1, 8, 5), # 24x24x8 
-        nn.MaxPool2d(2), # 12x12x8
-        nn.ReLU()
-        )
-        
-        self.Linear1 = nn.Linear(8 * 12 * 12, 64)
-        self.Linear2 = nn.Linear(64, 32)
-        self.Linear3 = nn.Linear(32, 25)
-        
-    def forward(self, x):
-        x = self.Conv1(x)
         x = x.view(x.size(0), -1) #flatten
         x = self.Linear1(x)
         x = self.Linear2(x)
@@ -322,7 +301,7 @@ class NeuralNetwork():
         return pd.DataFrame(stats)
 
 
-net = NeuralNetwork(Classifier_3(),"Classifier_3")
+net = NeuralNetwork(Classifier_2(),"Classifier_2")
 stats = net.full_training()
 
-stats.to_parquet(os.getcwd()+"/../models/Classifier_3/stats.parquet")
+stats.to_parquet(os.getcwd()+"/../models/Classifier_2/stats.parquet")
