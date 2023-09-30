@@ -3,13 +3,9 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 
-from torchvision import transforms
-
 import torch
 
-from typing import Tuple
-
-from PIL import Image
+from torch.utils.data import random_split
 
 class ImageDataset(Dataset):
     def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, device:str="cuda", transform:bool = False) -> None:
@@ -24,3 +20,14 @@ class ImageDataset(Dataset):
     
     def __getitem__(self, index):
         return self._X[index] , self._Y[index]
+    
+    def spit_train_val(self, perc_val_size:float):
+        
+        if perc_val_size < 0 or perc_val_size > 1:
+            raise ValueError("Validation percentage should be between 0 and 1")
+        
+        train_size = len(self)
+        val_size = int(train_size * perc_val_size)
+        train_size -= val_size
+
+        return random_split(self, [int(train_size), int(val_size)]) #train_data, val_data 
