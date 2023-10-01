@@ -13,10 +13,56 @@ import torch
 
 import os
 
-import torch.optim.lr_scheduler as lr_scheduler
-
 from tqdm import tqdm
 
+class AlexNet(nn.Module):
+    def __init__(self, num_classes=25):
+        super(AlexNet, self).__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=0),
+            nn.BatchNorm2d(96),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size = 3, stride = 2))
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(96, 256, kernel_size=5, stride=1, padding=2),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size = 3, stride = 2))
+        self.layer3 = nn.Sequential(
+            nn.Conv2d(256, 384, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(384),
+            nn.ReLU())
+        self.layer4 = nn.Sequential(
+            nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(384),
+            nn.ReLU())
+        self.layer5 = nn.Sequential(
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size = 3, stride = 2))
+        self.fc = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(9216, 4096),
+            nn.ReLU())
+        self.fc1 = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(4096, 4096),
+            nn.ReLU())
+        self.fc2= nn.Sequential(
+            nn.Linear(4096, num_classes))
+        
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        out = self.layer5(out)
+        out = out.reshape(out.size(0), -1)
+        out = self.fc(out)
+        out = self.fc1(out)
+        out = self.fc2(out)
+        return out
 class Classifier_3(nn.Module):
     def __init__(self, n_neurons = 512):
         super(Classifier_3, self).__init__()
@@ -81,8 +127,7 @@ class Classifier_2(nn.Module):
     
 
 class NeuralNetwork():
-    def __init__( self, model: nn.Module, model_name:str, batch_size=64, 
-                 lr:float=0.01, momentum:float=0, max_epoch:int=1000,
+    def __init__( self, model: nn.Module, optimizer, model_name:str, batch_size=128, max_epoch:int=1000,
                  patience:int=20):
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -90,8 +135,7 @@ class NeuralNetwork():
         self.model_name=model_name
         
         self.model = model.to(self.device)
-        self.optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
-        self.scheduler = lr_scheduler.LinearLR(self.optimizer, start_factor=1.0, end_factor=0.5, total_iters=int(max_epoch*0.5))
+        self.optimizer = optimizer
         
         self.loss = nn.CrossEntropyLoss()
         
@@ -111,7 +155,7 @@ class NeuralNetwork():
 
         self.val_loader = DataLoader(
             dataset = val_dataset,
-            batch_size=batch_size,
+            batch_size = batch_size,
         )
         
         (test_X, test_y) = load_dataframes(is_train=False)
@@ -130,10 +174,9 @@ class NeuralNetwork():
         
         for batch_idx, (data, target) in enumerate(self.train_loader):
             
-            output = self.model(data)
+            output = self.model(data.to(self.device))
             
             l = self.loss(output, target)
-            
             
             train_loss += l.item()
             
@@ -154,10 +197,9 @@ class NeuralNetwork():
         with torch.no_grad():
             for data, target in self.val_loader:
                 
-                output = self.model(data)
+                output = self.model(data.to(self.device))
             
                 l = self.loss(output, target)
-                
                 
                 val_loss += l.item()
 
@@ -172,7 +214,7 @@ class NeuralNetwork():
         with torch.inference_mode():
             for data, target in self.test_loader:
                 
-                output = self.model(data)
+                output = self.model(data.to(self.device))
             
                 output_prob = torch.softmax(output, dim=1)
                 prediction = torch.argmax(output_prob, dim=1)
@@ -184,42 +226,22 @@ class NeuralNetwork():
         
         return accuracy
     
-    def __save_model(self, training_loss_value:float, validation_loss_value:float, epoch:int, is_best):
-        
-        if is_best:
-            folder = ""
-        else:
-            folder = "backup"
+    def __save_model(self, epoch:int, stats:dict):
         
         model_path = os.getcwd()+"/../models/"+self.model_name+"/"
-        if not os.path.exists(model_path):
-            os.mkdir(model_path) 
-        
-        model_path += folder+"/"
         if not os.path.exists(model_path):
             os.mkdir(model_path) 
         
         torch.save({
             'epoch': epoch,
-            'training_loss': training_loss_value,
-            'validation_loss' : validation_loss_value,
+            'stats':stats,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict()
             }, model_path+"best.tar")
         
-    def __load_model(self, is_best):
-        
-        if is_best:
-            folder = ""
-        else:
-            folder = "backup"
+    def __load_model(self):
         
         model_path = os.getcwd()+"/../models/"+self.model_name+"/"
-        if not os.path.exists(model_path):
-            os.mkdir(model_path) 
-        
-        model_path += folder+"/"
         if not os.path.exists(model_path):
             os.mkdir(model_path) 
             
@@ -231,15 +253,17 @@ class NeuralNetwork():
         self.model.to(self.device)
         
         self.optimizer.load_state_dict(checkpoint.pop('optimizer_state_dict'))
-        self.scheduler.load_state_dict(checkpoint.pop('scheduler_state_dict'))
         
-        return checkpoint
+        return checkpoint["epoch"], checkpoint["stats"]
 
     class EarlyStopper:
         def __init__(self, patience=20):
             self.patience = patience
             self.counter = 0
             self.min_validation_loss = float('inf')
+            
+            self.save_model=True
+            self.stop=False
 
         def __call__(self, validation_loss):
             
@@ -248,13 +272,17 @@ class NeuralNetwork():
             if self.difference < 0:
                 self.min_validation_loss = validation_loss
                 self.counter = 0
+                self.save_model=True
             else:
                 self.counter += 1
+                self.save_model=False
                 if self.counter >= self.patience:
-                    return True
-            return False
+                    self.stop = True
+                    
     
     def full_training(self):
+        
+        self.trained=True
         
         stats={"epochs":[],
                "train_losses":[],
@@ -263,7 +291,7 @@ class NeuralNetwork():
                "test_accuracies":[],
                "best_epoch":-1}
 
-        epochs_bar = tqdm(range(1, self.max_epoch+1), desc=f'Patient [0 / {self.patience}]', leave=False)
+        epochs_bar = tqdm(range(1, self.max_epoch+1), desc=f'Patient [0 / {self.patience}]', leave=True)
             
         early_stopper = self.EarlyStopper(patience=self.patience)
 
@@ -275,8 +303,7 @@ class NeuralNetwork():
             
             current_lr = self.optimizer.param_groups[0]["lr"]
             
-            stop = early_stopper(eval_loss)
-            self.scheduler.step()
+            early_stopper(eval_loss)
             
             accuracy = self.test()
             
@@ -287,21 +314,24 @@ class NeuralNetwork():
             stats["train_losses"].append(train_loss)
             stats["eval_losses"].append(eval_loss)
             stats["current_lrs"].append(current_lr)
-            stats["test_accuracies"].append(accuracy)
+            stats["test_accuracies"].append(accuracy)            
             
-            if stop:
+            if early_stopper.save_model:
+                self.__save_model(epoch, stats)
+                stats["best_epoch"]=epoch
+            
+            if early_stopper.stop:
                 epochs_bar.write(f"Early stopped at epoch {epoch}")
                 break
-            else:
-                self.__save_model(train_loss, eval_loss, epoch, True)
-                stats["best_epoch"]=epoch
         
-        self.__load_model(True)
+        self.__load_model()
                 
         return pd.DataFrame(stats)
 
+model = AlexNet()
+optimizer = optim.Adam(model.parameters(),lr=0.0001, amsgrad=True)
+net = NeuralNetwork(model,optimizer,"Classifier_3")
 
-net = NeuralNetwork(Classifier_2(),"Classifier_2")
 stats = net.full_training()
 
-stats.to_parquet(os.getcwd()+"/../models/Classifier_2/stats.parquet")
+stats.to_parquet(os.getcwd()+"/../models/Classifier_3/stats.parquet")
