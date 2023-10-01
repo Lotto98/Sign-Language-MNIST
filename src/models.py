@@ -15,54 +15,37 @@ import os
 
 from tqdm import tqdm
 
-class AlexNet(nn.Module):
+class LeNet5(nn.Module):
     def __init__(self, num_classes=25):
-        super(AlexNet, self).__init__()
+        super(LeNet5, self).__init__()
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 96, kernel_size=11, stride=4, padding=0),
-            nn.BatchNorm2d(96),
+            nn.Conv2d(1, 6, kernel_size=5, stride=1, padding=0),
+            nn.BatchNorm2d(6),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size = 3, stride = 2))
+            nn.MaxPool2d(kernel_size = 2, stride = 2))
         self.layer2 = nn.Sequential(
-            nn.Conv2d(96, 256, kernel_size=5, stride=1, padding=2),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(6, 16, kernel_size=5, stride=1, padding=0),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size = 3, stride = 2))
-        self.layer3 = nn.Sequential(
-            nn.Conv2d(256, 384, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(384),
-            nn.ReLU())
-        self.layer4 = nn.Sequential(
-            nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(384),
-            nn.ReLU())
-        self.layer5 = nn.Sequential(
-            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size = 3, stride = 2))
-        self.fc = nn.Sequential(
-            nn.Dropout(0.5),
-            nn.Linear(9216, 4096),
-            nn.ReLU())
-        self.fc1 = nn.Sequential(
-            nn.Dropout(0.5),
-            nn.Linear(4096, 4096),
-            nn.ReLU())
-        self.fc2= nn.Sequential(
-            nn.Linear(4096, num_classes))
+            nn.MaxPool2d(kernel_size = 2, stride = 2))
+        
+        self.fc = nn.Linear(400, 120)
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(120, 84)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(84, num_classes)
         
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
-        out = self.layer5(out)
         out = out.reshape(out.size(0), -1)
         out = self.fc(out)
+        out = self.relu(out)
         out = self.fc1(out)
+        out = self.relu1(out)
         out = self.fc2(out)
         return out
+    
 class Classifier_3(nn.Module):
     def __init__(self, n_neurons = 512):
         super(Classifier_3, self).__init__()
@@ -83,8 +66,12 @@ class Classifier_3(nn.Module):
             nn.ReLU()
         )
         
+        self.dropout=nn.Dropout()
+        
         self.Linear1 = nn.Linear(128, n_neurons)
+        self.relu = nn.ReLU()
         self.Linear2 = nn.Linear(n_neurons, 32)
+        self.relu1 = nn.ReLU()
         self.Linear3 = nn.Linear(32, 25)
         
     def forward(self, x):
@@ -92,8 +79,12 @@ class Classifier_3(nn.Module):
         x = self.Conv2(x)
         x = self.Conv3(x)
         x = x.view(x.size(0), -1) #flatten
+        x = self.dropout(x)
         x = self.Linear1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
         x = self.Linear2(x)
+        x = self.relu(x)
         x = self.Linear3(x)
         return x
 
@@ -328,7 +319,9 @@ class NeuralNetwork():
                 
         return pd.DataFrame(stats)
 
-model = AlexNet()
+model = Classifier_3()
+from torchsummary import summary
+summary(model, (1,28,28))
 optimizer = optim.Adam(model.parameters(),lr=0.0001, amsgrad=True)
 net = NeuralNetwork(model,optimizer,"Classifier_3")
 

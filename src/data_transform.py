@@ -15,14 +15,14 @@ class ImageDataset(Dataset):
         super().__init__()
         
         numpy_X = dataframe_X.to_numpy(dtype=np.float32)
-        numpy_X = np.stack((numpy_X,)*3, axis=-1)
-        numpy_X = numpy_X.reshape(len(dataframe_X),3,28,28)
+        #numpy_X = np.stack((numpy_X,)*3, axis=-1)
+        numpy_X = numpy_X.reshape(len(dataframe_X),1,28,28)
         
         #numpy_X = np.pad(numpy_X,((0,0),(0,0),(99,100),(99,100)),mode="constant",constant_values=[0])
         #print(numpy_X.shape)
         
-        self._X = torch.from_numpy(numpy_X)#.to(device)
-        self._X=T.Resize(227)(self._X)
+        self._X = torch.from_numpy(numpy_X).to(device)
+        #self._X=T.Resize((32,32))(self._X)
         
         self._Y = torch.from_numpy(series_Y.to_numpy()).to(device)
         
