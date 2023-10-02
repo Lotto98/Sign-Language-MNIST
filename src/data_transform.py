@@ -9,20 +9,21 @@ from torch.utils.data import random_split
 
 import torchvision.transforms as T
 
+from typing import Tuple
+
 class ImageDataset(Dataset):
-    def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, device:str="cuda", transform:bool = False) -> None:
-        
+    def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, transform_dimension:Tuple[int,int], device:str="cuda") -> None:
         super().__init__()
         
+        assert transform_dimension[0] > 0 and transform_dimension[1] > 0, "Resize dimensions should be > 0"
+        
+        assert transform_dimension[0]==transform_dimension[1], "Resize dimensions should be equal"
+        
         numpy_X = dataframe_X.to_numpy(dtype=np.float32)
-        #numpy_X = np.stack((numpy_X,)*3, axis=-1)
         numpy_X = numpy_X.reshape(len(dataframe_X),1,28,28)
         
-        #numpy_X = np.pad(numpy_X,((0,0),(0,0),(99,100),(99,100)),mode="constant",constant_values=[0])
-        #print(numpy_X.shape)
-        
         self._X = torch.from_numpy(numpy_X).to(device)
-        #self._X=T.Resize((32,32))(self._X)
+        self._X = T.Resize(transform_dimension, antialias = False)(self._X) # type: ignore
         
         self._Y = torch.from_numpy(series_Y.to_numpy()).to(device)
         
