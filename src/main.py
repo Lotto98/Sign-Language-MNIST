@@ -41,4 +41,7 @@ def multiple_test(model:nn.Module, model_name:str):
         
         single_test(model=model, model_name=name, lr=lr, batch_size=batch_size, patience=patience )
     
-multiple_test(model=Classifier_3(), model_name="Classifier_3")
+#multiple_test(model=Classifier_3(), model_name="Classifier_3")
+
+
+single_test(Classifier_3(), "Classifier_3", 128,20)
