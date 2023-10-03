@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from data_transform import ImageDataset
+from ImageDataset import ImageDataset
 from utility import load_dataframes
 
 from torchsummary import summary
