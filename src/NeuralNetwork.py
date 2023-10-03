@@ -17,7 +17,7 @@ class NeuralNetwork():
                     optimizer,
                     model_name:str,
                     model_input_dim:Tuple[int, int] = (28,28),
-                    batch_size=128, max_epoch:int=1000, patience:int=20):
+                    batch_size=128, patience:int=20, max_epoch:int=1000):
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -35,7 +35,7 @@ class NeuralNetwork():
         self.__stats ={"epochs":[],
                         "train_losses":[],
                         "eval_losses":[],
-                        "current_lrs":[],
+                        #"current_lrs":[],
                         "test_accuracies":[],
                         "best_epoch":-1}
         
@@ -146,10 +146,10 @@ class NeuralNetwork():
             'model_state_dict': self.__model.state_dict(),
             'optimizer_state_dict': self.__optimizer.state_dict(),
             }, model_path+"best.tar")
-        
-    def load_model(self):
-        
-        model_path = os.getcwd()+"/../models/"+self.model_name+"/"
+    
+    @staticmethod
+    def __load(model_name:str):
+        model_path = os.getcwd()+"/../models/"+model_name+"/"
         if not os.path.exists(model_path):
             os.mkdir(model_path) 
             
@@ -157,7 +157,11 @@ class NeuralNetwork():
         
         assert os.path.exists(model_path), "No model found" 
         
-        checkpoint = torch.load(model_path)
+        return torch.load(model_path)
+
+    def load_model(self): 
+        
+        checkpoint = NeuralNetwork.__load(self.model_name)
         
         self.__model.load_state_dict(checkpoint.pop('model_state_dict'))
         self.__model.to(self.device)
@@ -166,6 +170,10 @@ class NeuralNetwork():
         
         self.__current_epoch = checkpoint["epoch"]
         self.__stats = checkpoint["stats"]
+        
+    @staticmethod
+    def load_stats(model_name:str):
+        return NeuralNetwork.__load(model_name)["stats"]
 
     class __EarlyStopper:
         def __init__(self, patience=20):
@@ -209,19 +217,19 @@ class NeuralNetwork():
             
             eval_loss = self.__evaluate()
             
-            current_lr = self.__optimizer.param_groups[0]["lr"]
+            #current_lr = self.__optimizer.param_groups[0]["lr"]
             
             early_stopper(eval_loss)
             
             accuracy = self.test()
             
             epochs_bar.set_description(f'Patient [{early_stopper.counter} / {self.__patience}]')
-            epochs_bar.set_postfix(train_loss=train_loss, eval_loss = eval_loss, lr=current_lr, difference=early_stopper.difference, test_accuracy=accuracy)
+            epochs_bar.set_postfix(train_loss=train_loss, eval_loss = eval_loss, difference=early_stopper.difference, test_accuracy=accuracy)
             
             self.__stats["epochs"].append(epoch)
             self.__stats["train_losses"].append(train_loss)
             self.__stats["eval_losses"].append(eval_loss)
-            self.__stats["current_lrs"].append(current_lr)
+            #self.__stats["current_lrs"].append(current_lr)
             self.__stats["test_accuracies"].append(accuracy)            
             
             if early_stopper.save_model:
