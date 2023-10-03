@@ -40,10 +40,10 @@ class NeuralNetwork():
                         "best_epoch":-1}
         
         #training/validation datasets
-        (train_X, train_y) = load_dataframes(is_train=True)
-        train_dataset = ImageDataset(train_X, train_y, transform_dimension=model_input_dim)
-
-        train_dataset, val_dataset = train_dataset.spit_train_val(0.2)
+        train_X, val_X, train_y, val_Y = load_dataframes(isTrain=True)
+        
+        train_dataset = ImageDataset(train_X, train_y, transform_dimension=model_input_dim, data_augmentation_perc=0.2)
+        val_dataset = ImageDataset(val_X, val_Y, transform_dimension=model_input_dim, data_augmentation_perc=0)
 
         # Define the data loaders
         self.__train_loader = DataLoader(
@@ -57,9 +57,9 @@ class NeuralNetwork():
         )
         
         #test dataset loading
-        (test_X, test_y) = load_dataframes(is_train=False)
+        (test_X, test_y) = load_dataframes(isTrain=False)
 
-        test_dataset = ImageDataset(test_X, test_y, transform_dimension=model_input_dim)
+        test_dataset = ImageDataset(test_X, test_y, transform_dimension=model_input_dim, data_augmentation_perc=0)
         
         self.__test_loader = DataLoader(
             dataset = test_dataset,
