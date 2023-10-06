@@ -100,3 +100,18 @@ class Classifier_2(nn.Module):
         x = self.Linear2(x)
         x = self.Linear3(x)
         return x
+
+class Classifier_1(nn.Module):
+    def __init__(self, n_neurons = 512):
+        super(Classifier_1, self).__init__()
+        
+        self.Linear1 = nn.Linear(28 * 28, n_neurons)
+        self.Linear2 = nn.Linear(n_neurons, 32)
+        self.Linear3 = nn.Linear(32, 25)
+        
+    def forward(self, x):
+        x = x.view(x.size(0), -1) #flatten
+        x = self.Linear1(x)
+        x = self.Linear2(x)
+        x = self.Linear3(x)
+        return x

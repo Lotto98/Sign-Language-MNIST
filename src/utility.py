@@ -75,12 +75,12 @@ def load_dataframes(isTrain:bool):#->Union[Tuple[pd.DataFrame,pd.Series, pd.Data
     X = pd.read_parquet(dfs_path+"X.parquet")
     Y = pd.read_parquet(dfs_path+"Y.parquet").squeeze()
 
-    print(type(X),type(Y))
+    #print(type(X),type(Y))
     
     if isTrain:
         X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
         
-        print((X_train), type(X_val), type(y_train), type(y_val))
+        #print((X_train), type(X_val), type(y_train), type(y_val))
         
         return X_train, X_val, y_train, y_val
     else:

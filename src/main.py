@@ -1,6 +1,6 @@
 from NeuralNetwork import NeuralNetwork
 
-from models import Classifier_3, LeNet5
+from models import Classifier_1, Classifier_3, LeNet5
 
 import torch.optim as optim
 import torch.nn as nn
@@ -23,7 +23,7 @@ def single_test(model:nn.Module, model_name:str, batch_size:int, patience:int, l
 
 def multiple_test(model:nn.Module, model_name:str):
     
-    lrs = [0.1, 0.001, 0.0001]
+    lrs = [0.001, 0.0001, 0.00001]
     batch_sizes = [16, 32, 64, 128, 256]
     patiences = [5, 10, 15, 20]
     
@@ -44,4 +44,4 @@ def multiple_test(model:nn.Module, model_name:str):
 #multiple_test(model=Classifier_3(), model_name="Classifier_3")
 
 
-single_test(Classifier_3(), "Classifier_3", 128,20)
+single_test(Classifier_1(), "Classifier_1", 128, 20)
