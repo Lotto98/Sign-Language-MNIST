@@ -12,14 +12,19 @@ import os
 from tqdm import tqdm
 from typing import Tuple
 
+from sklearn.model_selection import train_test_split
+
+import time
+
 class NeuralNetwork():
     def __init__( self, model: nn.Module,
                     optimizer,
                     model_name:str,
                     model_input_dim:Tuple[int, int] = (28,28),
-                    batch_size=128, patience:int=20, max_epoch:int=1000):
+                    batch_size=128, patience:int=20, data_augmentation_perc:float=0,
+                    max_epoch:int = 100):
         
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda") #torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self.model_name=model_name
         
@@ -28,7 +33,7 @@ class NeuralNetwork():
         self.__optimizer = optimizer
         self.__loss = nn.CrossEntropyLoss()
         self.max_epoch = max_epoch
-        self.__patience=patience
+        self.__patience = patience
         
         #training
         self.__current_epoch = 0
@@ -37,13 +42,23 @@ class NeuralNetwork():
                         "eval_losses":[],
                         #"current_lrs":[],
                         "test_accuracies":[],
-                        "best_epoch":-1}
+                        #"best_epoch":-1,
+                        "training_time_per_epoch": []}
+        
+        self.__create_dataloaders(model_input_dim, batch_size, data_augmentation_perc)
+        
+        print(f"Model name: {model_name}")
+        summary(self.__model, (1, model_input_dim[0], model_input_dim[1]), device=self.device)
+        
+    def __create_dataloaders(self, model_input_dim:Tuple[int, int], batch_size:int, data_augmentation_perc:float):
         
         #training/validation datasets
-        train_X, val_X, train_y, val_Y = load_dataframes(isTrain=True)
+        train_X, train_y = load_dataframes(isTrain=True)
         
-        train_dataset = ImageDataset(train_X, train_y, transform_dimension=model_input_dim, data_augmentation_perc=0.2)
-        val_dataset = ImageDataset(val_X, val_Y, transform_dimension=model_input_dim, data_augmentation_perc=0)
+        train_X, val_X, train_y, val_Y = train_test_split(train_X, train_y, test_size=0.2, random_state=8)
+        
+        train_dataset = ImageDataset(train_X, train_y, transform_dimension=model_input_dim, data_augmentation_perc=data_augmentation_perc, device=self.device)
+        val_dataset = ImageDataset(val_X, val_Y, transform_dimension=model_input_dim, data_augmentation_perc=0, device=self.device)
 
         # Define the data loaders
         self.__train_loader = DataLoader(
@@ -59,15 +74,12 @@ class NeuralNetwork():
         #test dataset loading
         (test_X, test_y) = load_dataframes(isTrain=False)
 
-        test_dataset = ImageDataset(test_X, test_y, transform_dimension=model_input_dim, data_augmentation_perc=0)
+        test_dataset = ImageDataset(test_X, test_y, transform_dimension=model_input_dim, data_augmentation_perc=0, device=self.device)
         
         self.__test_loader = DataLoader(
             dataset = test_dataset,
             batch_size = batch_size,
         )
-        
-        print(f"Model name: {model_name}")
-        summary(self.__model, (1,model_input_dim[0],model_input_dim[1]))
         
     def get_current_epoch(self):
         return self.__current_epoch
@@ -77,7 +89,7 @@ class NeuralNetwork():
         
         train_loss=0
         
-        for batch_idx, (data, target) in enumerate(self.__train_loader):
+        for data, target in self.__train_loader:
             
             output = self.__model(data.to(self.device))
             
@@ -130,7 +142,7 @@ class NeuralNetwork():
                 accuracy += torch.sum(prediction==target).item()
                 
                 
-            accuracy = accuracy/len(self.__test_loader.dataset) # type: ignore
+            accuracy = accuracy / len(self.__test_loader.dataset) # type: ignore
         
         return accuracy
     
@@ -172,17 +184,16 @@ class NeuralNetwork():
         self.__stats = checkpoint["stats"]
         
     @staticmethod
-    def load_stats(model_name:str):
+    def return_stats(model_name:str):
         return NeuralNetwork.__load(model_name)["stats"]
-
     class __EarlyStopper:
         def __init__(self, patience=20):
             self.patience = patience
             self.counter = 0
             self.min_validation_loss = float('inf')
             
-            self.save_model=True
-            self.stop=False
+            self.save_model = True
+            self.stop = False
 
         def __call__(self, validation_loss):
             
@@ -191,15 +202,15 @@ class NeuralNetwork():
             if self.difference < 0:
                 self.min_validation_loss = validation_loss
                 self.counter = 0
-                self.save_model=True
+                self.save_model = True
             else:
                 self.counter += 1
-                self.save_model=False
+                self.save_model = False
                 if self.counter >= self.patience:
                     self.stop = True
                     
     
-    def full_training(self):
+    def full_training(self)->float:
         
         if self.__current_epoch != 0:
             assert self.__current_epoch < self.max_epoch, f"Model already trained for {self.max_epoch} epochs: change this value to continue training"
@@ -208,36 +219,38 @@ class NeuralNetwork():
         epochs_bar = tqdm(range(self.__current_epoch + 1, self.max_epoch+1), desc=f'Patient [0 / {self.__patience}]', leave=True)
             
         early_stopper = self.__EarlyStopper(patience=self.__patience)
-
+        
         for epoch in epochs_bar:
             
             self.__current_epoch = epoch
             
+            start_training_time = time.perf_counter()
+            
             train_loss = self.__train()
-            
             eval_loss = self.__evaluate()
-            
-            #current_lr = self.__optimizer.param_groups[0]["lr"]
             
             early_stopper(eval_loss)
             
-            accuracy = self.test()
+            end_training_time = time.perf_counter()
             
-            epochs_bar.set_description(f'Patient [{early_stopper.counter} / {self.__patience}]')
-            epochs_bar.set_postfix(train_loss=train_loss, eval_loss = eval_loss, difference=early_stopper.difference, test_accuracy=accuracy)
+            accuracy = self.test()
             
             self.__stats["epochs"].append(epoch)
             self.__stats["train_losses"].append(train_loss)
             self.__stats["eval_losses"].append(eval_loss)
-            #self.__stats["current_lrs"].append(current_lr)
-            self.__stats["test_accuracies"].append(accuracy)            
+            self.__stats["training_time_per_epoch"].append( end_training_time - start_training_time )
+            self.__stats["test_accuracies"].append(accuracy)
+            
+            epochs_bar.set_description(f'Patient [{early_stopper.counter} / {self.__patience}]')
+            epochs_bar.set_postfix(train_loss=train_loss, eval_loss = eval_loss, difference=early_stopper.difference, test_accuracy=accuracy)
             
             if early_stopper.save_model:
-                self.__stats["best_epoch"] = epoch
                 self.__save_model()
-            
+    
             if early_stopper.stop:
                 epochs_bar.write(f"Early stopped at epoch {epoch}")
                 break
         
         self.load_model() #load best model configuration
+        
+        return sum(self.__stats["training_time_per_epoch"])

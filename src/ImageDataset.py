@@ -5,14 +5,12 @@ import numpy as np
 
 import torch
 
-from torch.utils.data import random_split
-
 import torchvision.transforms as T
 
 from typing import Tuple
 
 class ImageDataset(Dataset):
-    def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, transform_dimension:Tuple[int,int], data_augmentation_perc:float=0, device:str="cuda") -> None:
+    def __init__(self, dataframe_X:pd.DataFrame, series_Y:pd.Series, transform_dimension:Tuple[int,int], data_augmentation_perc:float, device) -> None:
         super().__init__()
         
         assert transform_dimension[0] > 0 and transform_dimension[1] > 0, "Resize dimensions should be > 0"

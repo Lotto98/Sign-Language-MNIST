@@ -9,7 +9,7 @@ import os
 
 from typing import Union, Tuple
 
-from sklearn.model_selection import train_test_split
+
 
 response_transform={n:chr(n+65) for n in range(0,26)}
 
@@ -61,7 +61,7 @@ def save_dataframes(train_X:pd.DataFrame, test_X:pd.DataFrame,
     test_Y.to_frame().to_parquet(dfs_path+"/test_Y.parquet")
     
     
-def load_dataframes(isTrain:bool):#->Union[Tuple[pd.DataFrame,pd.Series, pd.DataFrame,pd.Series], Tuple[pd.DataFrame,pd.Series]]:
+def load_dataframes(isTrain:bool)->Tuple[pd.DataFrame,pd.Series]:
     
     dfs_path = os.getcwd()+"/../data/dataframes" 
     if not os.path.exists(dfs_path):
@@ -77,11 +77,4 @@ def load_dataframes(isTrain:bool):#->Union[Tuple[pd.DataFrame,pd.Series, pd.Data
 
     #print(type(X),type(Y))
     
-    if isTrain:
-        X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
-        
-        #print((X_train), type(X_val), type(y_train), type(y_val))
-        
-        return X_train, X_val, y_train, y_val
-    else:
-        return X, Y
+    return X, Y
