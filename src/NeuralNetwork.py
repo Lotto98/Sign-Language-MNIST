@@ -222,7 +222,9 @@ class NeuralNetwork():
     def full_training(self)->float:
 
         epochs_bar = tqdm(range(self.__current_epoch + 1, self.max_epoch+1), desc=f'Patient [0 / {self.__patience}]', leave=False)
-            
+        
+        to_write = "No early stopping"
+
         early_stopper = self.__EarlyStopper(patience=self.__patience)
         
         for epoch in epochs_bar:
@@ -253,8 +255,11 @@ class NeuralNetwork():
                 self.__save_model()
     
             if early_stopper.stop:
-                epochs_bar.write(f"Early stopped at epoch {epoch}")
+                to_write = f"Early stopped at epoch {epoch}"
                 break
+            
+        epochs_bar.write(to_write)
+        epochs_bar.close()
         
         self.load_model() #load best model configuration
         

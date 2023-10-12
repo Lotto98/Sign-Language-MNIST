@@ -19,7 +19,7 @@ class Model(nn.Module):
         if print_architecture_spec:
             architecture_name += f" (n_neurons_molt_factor={self.n_neurons_molt_factor}, do_dropout={self.do_dropout_list})"
         
-        print(architecture_name)
+        print(f"name: {architecture_name}")
         summary(self, self.model_input_dim, device=self.device)
         
         return architecture_name
