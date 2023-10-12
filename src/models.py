@@ -1,10 +1,32 @@
 import torch.nn as nn
+import torch
 
-from typing import List
+from typing import List, Tuple
 
-class LeNet5(nn.Module):
-    def __init__(self):
-        super(LeNet5, self).__init__()
+from torchsummary import summary
+
+class Model(nn.Module):
+    def __init__(self, model_input_dim:Tuple[int,int], device: torch.device) -> None:
+        super(Model, self).__init__()
+        
+        self.model_input_dim = (1, model_input_dim[0], model_input_dim[1])
+        self.device = device
+        
+    def print_architecture(self, print_architecture_spec:bool)->str:
+        
+        architecture_name = type(self).__name__
+
+        if print_architecture_spec:
+            architecture_name += f" (n_neurons_molt_factor={self.n_neurons_molt_factor}, do_dropout={self.do_dropout_list})"
+        
+        print(architecture_name)
+        summary(self, self.model_input_dim, device=self.device)
+        
+        return architecture_name
+        
+class LeNet5(Model):
+    def __init__(self, device: torch.device):
+        super(LeNet5, self).__init__( (32,32), device)
         self.layer1 = nn.Sequential(
             nn.Conv2d(1, 6, kernel_size=5, stride=1, padding=0),
             nn.BatchNorm2d(6),
@@ -33,9 +55,12 @@ class LeNet5(nn.Module):
         out = self.fc2(out)
         return out
 
-class Classifier_1(nn.Module):
-    def __init__(self, input:int=28*28, n_neurons_molt_factor:float = 1, do_dropout:List[str]=[]):
-        super(Classifier_1, self).__init__()
+class Classifier_1(Model):
+    def __init__(self, device: torch.device, input:int=28*28, n_neurons_molt_factor:float = 1, do_dropout:List[str]=[]):
+        super(Classifier_1, self).__init__((28,28), device=device)
+        
+        self.n_neurons_molt_factor=n_neurons_molt_factor
+        self.do_dropout_list=do_dropout
         
         n_neurons = int(input * n_neurons_molt_factor)
         
@@ -67,8 +92,8 @@ class Classifier_1(nn.Module):
             return nn.Identity()
         
 class Classifier_2(Classifier_1):
-    def __init__(self, n_neurons_molt_factor:float = 1, do_dropout:List[str]=[]):
-        super().__init__(4 * 4 * 32, n_neurons_molt_factor, do_dropout)
+    def __init__(self, device: torch.device, n_neurons_molt_factor:float = 1, do_dropout:List[str]=[], ):
+        super().__init__(device, 4 * 4 * 32, n_neurons_molt_factor, do_dropout)
         
         self.Conv1 = nn.Sequential(
             nn.Conv2d(1, 16, 5), # 24x24x16 
@@ -91,8 +116,8 @@ class Classifier_2(Classifier_1):
         return super().forward(x)
 
 class Classifier_3(Classifier_1):
-    def __init__(self, n_neurons_molt_factor:float = 1, do_dropout:List[str]=[]):
-        super().__init__(128, n_neurons_molt_factor, do_dropout)
+    def __init__(self, device: torch.device, n_neurons_molt_factor:float = 1, do_dropout:List[str]=[]):
+        super().__init__(device, 128, n_neurons_molt_factor, do_dropout)
         
         self.Conv1 = nn.Sequential(
             nn.Conv2d(1, 32, 5), #24x24x32

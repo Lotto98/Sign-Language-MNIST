@@ -1,12 +1,11 @@
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 from torch.utils.data import DataLoader
 from ImageDataset import ImageDataset
 from utility import load_dataframes
-
-from torchsummary import summary
 
 import os
 from tqdm import tqdm
@@ -15,25 +14,33 @@ from typing import Tuple
 from sklearn.model_selection import train_test_split
 
 import time
-
+    
 class NeuralNetwork():
-    def __init__( self, model: nn.Module,
-                    optimizer,
-                    model_name:str,
+    def __init__( self, model_name:str,
+                    model: nn.Module,
+                    device:torch.device,
+                    lr:float,
                     model_input_dim:Tuple[int, int] = (28,28),
                     batch_size=128, patience:int=20, data_augmentation_perc:float=0,
                     max_epoch:int = 100):
         
-        self.device = torch.device("cuda") #torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         
-        self.model_name=model_name
+        self.__model_name=model_name
+        self.__model = model.to(self.device)
         
         #hyperparameters
-        self.__model = model.to(self.device)
-        self.__optimizer = optimizer
-        self.__loss = nn.CrossEntropyLoss()
+        self.__lr = lr
         self.max_epoch = max_epoch
         self.__patience = patience
+        self.__batch_size = batch_size
+        self.__data_augmentation_perc = data_augmentation_perc
+        
+        #optimizer
+        self.__optimizer = optim.Adam(model.parameters(),lr = lr, amsgrad=True)
+        
+        #loss
+        self.__loss = nn.CrossEntropyLoss()
         
         #training
         self.__current_epoch = 0
@@ -45,40 +52,42 @@ class NeuralNetwork():
                         #"best_epoch":-1,
                         "training_time_per_epoch": []}
         
-        self.__create_dataloaders(model_input_dim, batch_size, data_augmentation_perc)
+        self.__create_dataloaders(model_input_dim)
         
-        print(f"Model name: {model_name}")
-        summary(self.__model, (1, model_input_dim[0], model_input_dim[1]), device=self.device)
-        
-    def __create_dataloaders(self, model_input_dim:Tuple[int, int], batch_size:int, data_augmentation_perc:float):
+    def __create_dataloaders(self, model_input_dim:Tuple[int, int]):
         
         #training/validation datasets
         train_X, train_y = load_dataframes(isTrain=True)
         
         train_X, val_X, train_y, val_Y = train_test_split(train_X, train_y, test_size=0.2, random_state=8)
         
-        train_dataset = ImageDataset(train_X, train_y, transform_dimension=model_input_dim, data_augmentation_perc=data_augmentation_perc, device=self.device)
-        val_dataset = ImageDataset(val_X, val_Y, transform_dimension=model_input_dim, data_augmentation_perc=0, device=self.device)
+        train_dataset = ImageDataset(train_X, train_y,
+                                        transform_dimension=model_input_dim, data_augmentation_perc = self.__data_augmentation_perc, 
+                                        device=self.device)
+        val_dataset = ImageDataset(val_X, val_Y,
+                                    transform_dimension=model_input_dim, data_augmentation_perc=0, device=self.device)
 
         # Define the data loaders
         self.__train_loader = DataLoader(
             dataset = train_dataset,
-            batch_size = batch_size,
+            batch_size = self.__batch_size,
         )
 
         self.__val_loader = DataLoader(
             dataset = val_dataset,
-            batch_size = batch_size,
+            batch_size = self.__batch_size,
         )
         
         #test dataset loading
         (test_X, test_y) = load_dataframes(isTrain=False)
 
-        test_dataset = ImageDataset(test_X, test_y, transform_dimension=model_input_dim, data_augmentation_perc=0, device=self.device)
+        test_dataset = ImageDataset(test_X, test_y,
+                                    transform_dimension=model_input_dim,
+                                    data_augmentation_perc=0, device=self.device)
         
         self.__test_loader = DataLoader(
             dataset = test_dataset,
-            batch_size = batch_size,
+            batch_size = self.__batch_size,
         )
         
     def get_current_epoch(self):
@@ -148,7 +157,7 @@ class NeuralNetwork():
     
     def __save_model(self):
         
-        model_path = os.getcwd()+"/../models/"+self.model_name+"/"
+        model_path = os.getcwd()+"/../models/"+self.__model_name+"/"
         if not os.path.exists(model_path):
             os.mkdir(model_path) 
         
@@ -173,7 +182,7 @@ class NeuralNetwork():
 
     def load_model(self): 
         
-        checkpoint = NeuralNetwork.__load(self.model_name)
+        checkpoint = NeuralNetwork.__load(self.__model_name)
         
         self.__model.load_state_dict(checkpoint.pop('model_state_dict'))
         self.__model.to(self.device)
@@ -211,12 +220,8 @@ class NeuralNetwork():
                     
     
     def full_training(self)->float:
-        
-        if self.__current_epoch != 0:
-            assert self.__current_epoch < self.max_epoch, f"Model already trained for {self.max_epoch} epochs: change this value to continue training"
-            print(f"Restarting training from epoch {self.__current_epoch + 1}")
 
-        epochs_bar = tqdm(range(self.__current_epoch + 1, self.max_epoch+1), desc=f'Patient [0 / {self.__patience}]', leave=True)
+        epochs_bar = tqdm(range(self.__current_epoch + 1, self.max_epoch+1), desc=f'Patient [0 / {self.__patience}]', leave=False)
             
         early_stopper = self.__EarlyStopper(patience=self.__patience)
         
@@ -254,3 +259,8 @@ class NeuralNetwork():
         self.load_model() #load best model configuration
         
         return sum(self.__stats["training_time_per_epoch"])
+    
+    def prova(self):
+        if self.__current_epoch != 0:
+            assert self.__current_epoch < self.max_epoch, f"Model already trained for {self.max_epoch} epochs: change this value to continue training"
+            print(f"Restarting training from epoch {self.__current_epoch + 1}")

@@ -1,9 +1,9 @@
 from NeuralNetwork import NeuralNetwork
 
-from models import Classifier_1, Classifier_2, Classifier_3, LeNet5
+from models import Model, Classifier_1, Classifier_2, Classifier_3, LeNet5
 
-import torch.optim as optim
 import torch.nn as nn
+import torch
 
 from typing import Tuple
 
@@ -17,16 +17,16 @@ import pandas as pd
 
 import time
 
-def single_test(model:nn.Module,
-                model_name:str,
+def single_test(model_name:str,
+                model:nn.Module,
+                device:torch.device,
                 batch_size:int,
                 patience:int,
                 data_augmentation_perc:float,
                 lr:float=0.0001, model_input_dim:Tuple[int,int] = (28,28))->Tuple[float,float,float]:
-    
-    optimizer = optim.Adam(model.parameters(),lr=lr, amsgrad=True)
 
-    net = NeuralNetwork(model, optimizer, model_name, model_input_dim, batch_size, patience, data_augmentation_perc)
+    net = NeuralNetwork(model_name, model, device,
+                        lr, model_input_dim, batch_size, patience, data_augmentation_perc)
 
     train_time = net.full_training()
     
@@ -36,73 +36,80 @@ def single_test(model:nn.Module,
     
     return accuracy, end - start, train_time
 
-def multiple_test(model_name:str, n_conv_layers:int):
+def single_architecture_tests(model: Model, architecture_name:str, model_input_dim:Tuple[int,int], device:torch.device):
     
     lrs = [0.0005, 0.0001, 0.00001, 0.000001]
     batch_sizes = [32, 64, 128, 256, 512]
     patiences = [5, 10, 15, 20]
-    layers = ["Conv"+str(i) for i in range(2, n_conv_layers+1)]
-    layers += ["FC1"]
-    layers_all_combinations = [list(comb) for i in range(1, len(layers)+1) for comb in combinations(layers,i)]
-    layers_all_combinations.append([])
-    n_neurons_molt_factors = [2/3, 1, 2]
     data_augmentation_percs=[0, 0.25, 0.5, 0.75]
     
     results = {
-        "model_name":[],
         "lr":[],
         "batch_size":[],
         "patience":[],
-        "do_dropout":[],
-        "n_neurons_molt_factor":[],
         "data_augmentation_perc":[],
         "test_accuracies": [],
         "test_times":[],
         "train_times":[],
     }
     
-    prod = [x for x in product(lrs, batch_sizes, patiences, layers_all_combinations, n_neurons_molt_factors, data_augmentation_percs)]
+    prod = [x for x in product(lrs, batch_sizes, patiences, data_augmentation_percs)]
     
-    bar = tqdm(enumerate(prod), total=len(prod))
+    bar = tqdm(enumerate(prod), total=len(prod), desc = "Parameters")
     
-    for i, (lr, batch_size, patience, do_dropout,  n_neurons_molt_factor, data_augmentation_perc) in bar:
+    for i, (lr, batch_size, patience, data_augmentation_perc) in bar:
         
-        os.system('clear')
+        bar.write(f"Training parameters: lr={lr}, batch_size={batch_size}, patience={patience}, data_augmentation_perc={ data_augmentation_perc}")
         
-        bar.set_description(f"Test with parameters: lr={lr}, batch_size={batch_size}, patience={patience}, do_dropout={do_dropout}, n_neurons_molt_factor={n_neurons_molt_factor}, data_augmentation_perc={data_augmentation_perc}")
+        name = architecture_name +f"_test_{i}"
         
-        name = model_name + f"_test_{i}"
-        
-        match model_name:
-            case "Classifier_1":
-                model = Classifier_1(n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
-            case "Classifier_2":
-                model = Classifier_2(n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
-            case "Classifier_3":
-                model = Classifier_3(n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
-            case "LeNet5":
-                model = LeNet5()
-            case _:
-                raise IOError("Model not found")
-        
-        results["model_name"].append(name)
         results["lr"].append(lr)
         results["batch_size"].append(batch_size)
         results["patience"].append(patience)
-        results["do_dropout"].append(do_dropout)
-        results["n_neurons_molt_factor"].append(n_neurons_molt_factor)
         results["data_augmentation_perc"].append(data_augmentation_perc)
         
-        accuracy, train_time, test_time = single_test(model=model,
-                                                        model_name=name,
-                                                        lr=lr, batch_size=batch_size,
-                                                        patience=patience, data_augmentation_perc=data_augmentation_perc)
+        accuracy, test_time, train_time = single_test(name, model, device,
+                                                        batch_size, patience, data_augmentation_perc, lr, model_input_dim) 
         
         results["test_accuracies"].append(accuracy)
         results["test_times"].append(test_time)
         results["train_times"].append(train_time)
         
-        pd.DataFrame(results).to_parquet(f"../models/{model_name}_results.parquet")
+        pd.DataFrame(results).to_parquet(f"../models/{architecture_name}_results.parquet")
+        
 
-multiple_test("Classifier_2", 2)
-#single_test(Classifier_2(2,["FC1"]),"PROVA",128,20,0.75, 0.0001)
+def multiple_architectures_tests(model_name:str, n_conv_layers:int, model_input_dim:Tuple[int,int] = (28,28)):
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    layers = ["Conv"+ str(i) for i in range(1, n_conv_layers+1)]
+    layers += ["FC1"]
+    layers_all_combinations = [list(comb) for i in range(1, len(layers)+1) for comb in combinations(layers,i)]
+    layers_all_combinations.append([])
+
+    n_neurons_molt_factors = [0.6, 1, 2]
+    
+    for (n_neurons_molt_factor, do_dropout) in product(n_neurons_molt_factors, layers_all_combinations):
+        
+        print_architecture_spec=True
+        
+        match model_name:
+            case "Classifier_1":
+                model = Classifier_1(device, n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
+            case "Classifier_2":
+                model = Classifier_2(device, n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
+            case "Classifier_3":
+                model = Classifier_3(device, n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
+            case "LeNet5":
+                model = LeNet5(device)
+                print_architecture_spec=False
+            case _:
+                raise IOError("Model not found")
+            
+        os.system('clear')
+            
+        architecture_name = model.print_architecture(print_architecture_spec)
+
+        single_architecture_tests(model, architecture_name, model_input_dim, device)
+        
+multiple_architectures_tests("Classifier_2", 2)
