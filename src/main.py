@@ -1,6 +1,6 @@
 from NeuralNetwork import NeuralNetwork
 
-from models import Model, Classifier_1, Classifier_2, Classifier_3, LeNet5
+from base_models import Model, Classifier_1, Classifier_2, Classifier_3, LeNet5
 
 import torch.nn as nn
 import torch
@@ -36,14 +36,14 @@ def single_test(model_name:str,
     
     return accuracy, end - start, train_time
 
-def single_architecture_tests(model: Model, architecture_name:str, model_input_dim:Tuple[int,int], device:torch.device):
+def single_architecture_tests(results: dict, model: Model, architecture_name:str, model_input_dim:Tuple[int,int], device:torch.device):
     
     lrs = [0.0005, 0.0001, 0.00001, 0.000001]
     batch_sizes = [32, 64, 128, 256, 512]
     patiences = [5, 10, 15, 20]
     data_augmentation_percs=[0, 0.25, 0.5, 0.75]
     
-    results = {
+    results.update({
         "lr":[],
         "batch_size":[],
         "patience":[],
@@ -51,7 +51,7 @@ def single_architecture_tests(model: Model, architecture_name:str, model_input_d
         "test_accuracies": [],
         "test_times":[],
         "train_times":[],
-    }
+    })
     
     prod = [x for x in product(lrs, batch_sizes, patiences, data_augmentation_percs)]
     
@@ -96,6 +96,11 @@ def multiple_architectures_tests(model_name:str, n_conv_layers:int):
         
         print_architecture_spec=True
         
+        results={
+            'n_neurons_molt_factor':n_neurons_molt_factor,
+            'do_dropout':str(do_dropout)
+        }
+        
         match model_name:
             case "Classifier_1":
                 model = Classifier_1(device, n_neurons_molt_factor=n_neurons_molt_factor, do_dropout=do_dropout)
@@ -114,6 +119,6 @@ def multiple_architectures_tests(model_name:str, n_conv_layers:int):
         
         print("\n=============================HYPERPARAMETERS TUNING=============================")
 
-        single_architecture_tests(model, architecture_name, model_input_dim, device)
+        single_architecture_tests(results, model, architecture_name, model_input_dim, device)
         
-multiple_architectures_tests("Classifier_2", 2)
+multiple_architectures_tests("Classifier_3", 3)

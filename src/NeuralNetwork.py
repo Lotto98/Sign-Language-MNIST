@@ -14,6 +14,8 @@ from typing import Tuple
 from sklearn.model_selection import train_test_split
 
 import time
+
+import pandas as pd
     
 class NeuralNetwork():
     def __init__( self, model_name:str,
@@ -194,7 +196,7 @@ class NeuralNetwork():
         
     @staticmethod
     def return_stats(model_name:str):
-        return NeuralNetwork.__load(model_name)["stats"]
+        return pd.DataFrame(NeuralNetwork.__load(model_name)["stats"])
     class __EarlyStopper:
         def __init__(self, patience=20):
             self.patience = patience

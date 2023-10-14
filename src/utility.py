@@ -7,9 +7,12 @@ import gc
 
 import os
 
-from typing import Union, Tuple
+from typing import Tuple
 
+from os import listdir
+from os.path import isfile
 
+#from NeuralNetwork import NeuralNetwork
 
 response_transform={n:chr(n+65) for n in range(0,26)}
 
@@ -74,7 +77,46 @@ def load_dataframes(isTrain:bool)->Tuple[pd.DataFrame,pd.Series]:
         
     X = pd.read_parquet(dfs_path+"X.parquet")
     Y = pd.read_parquet(dfs_path+"Y.parquet").squeeze()
-
-    #print(type(X),type(Y))
     
     return X, Y
+
+def load_test_results(base_model_name:str):
+    
+    if base_model_name not in ["Classifier_1", "Classifier_2", "Classifier_3", "LeNet5"]:
+        raise IOError("Model not found")
+    
+    all_models_names = [f for f in listdir("../models/") if isfile(f"../models/{f}") and base_model_name in f]
+    
+    architecture_id_to_model_name = {}
+    results=[]
+    
+    for i, name in enumerate(all_models_names):
+        
+        result = pd.read_parquet(f"../models/{name}")
+        result.insert(0, "architecture_id", i)
+        
+        results.append(result)
+        
+        architecture_id_to_model_name[i] = name[:-16]
+    
+    all_model_results = pd.concat(results, ignore_index=True)
+    
+    return architecture_id_to_model_name, all_model_results
+
+def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model_name:dict , architecture_id:int):
+    
+    result = all_model_results[all_model_results["architecture_id"]==architecture_id]
+    
+    name = architecture_id_to_model_name[architecture_id]
+    
+    print(f"Stats for architecture: {name} (id: {architecture_id})")
+    
+    print(f"mean accuracy: {result['test_accuracies'].mean():.4f} with standard error: {result['test_accuracies'].var():.4f}\n")
+    
+    print(f"worst accuracy: {result['test_accuracies'].min():.4f} with hyperparameters:")
+    print(result.iloc[result["test_accuracies"].argmin()]
+            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"]),"\n")
+    
+    print(f"best accuracy: {result['test_accuracies'].max():.4f} with hyperparameters:")
+    print(result.iloc[result["test_accuracies"].argmax()]
+            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"]),"\n")
