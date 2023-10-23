@@ -111,7 +111,7 @@ def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model
     
     print(f"Stats for architecture: {name} (id: {architecture_id})")
     
-    print(f"mean accuracy: {result['test_accuracies'].mean():.4f} with standard error: {result['test_accuracies'].var():.4f}\n")
+    print(f"mean accuracy: {result['test_accuracies'].mean():.4f} with standard error: {result['test_accuracies'].std():.4f}\n")
     
     print(f"worst accuracy: {result['test_accuracies'].min():.4f} with hyperparameters:")
     print(result.iloc[result["test_accuracies"].argmin()]
