@@ -5,26 +5,67 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader
 from ImageDataset import ImageDataset
-from utility import load_dataframes
+from utility import load_dataframes, response_transform
 
 import os
 from tqdm import tqdm
 from typing import Tuple
 
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 import time
 
 import pandas as pd
-    
+import numpy as np
+import matplotlib.pyplot as plt
+
+from base_models import Model, Classifier_2, Classifier_3, LeNet5
+
 class NeuralNetwork():
+    
+    @staticmethod
+    def load_NN(model_hyperparameters:pd.Series, architecture_id_to_model_name: dict, device: torch.device, model_input_dim):
+        
+        model_name = architecture_id_to_model_name[model_hyperparameters["architecture_id"]] + "_test_" + str(model_hyperparameters["test_id"])
+        
+        do_dropout=model_hyperparameters["do_dropout"]
+        
+        if "Classifier_2" in model_name:
+            model = Classifier_2(device=device,
+                                    n_neurons_molt_factor=model_hyperparameters["n_neurons_molt_factor"],
+                                    do_dropout=do_dropout)
+        elif "Classifier_3" in model_name:
+            model = Classifier_3(device=device,
+                                    n_neurons_molt_factor=model_hyperparameters["n_neurons_molt_factor"],
+                                    do_dropout=do_dropout)
+        elif "LeNet5" in model_name:
+            model = LeNet5(device=device)
+        else:
+            raise IOError("Error")
+        
+        neuralNetwork =NeuralNetwork(model_name, model, device, float(model_hyperparameters["lr"]),
+                                model_input_dim, int(model_hyperparameters["batch_size"]),
+                                int(model_hyperparameters["patience"]), float(model_hyperparameters["data_augmentation_perc"]))
+        
+        neuralNetwork.__load_model()
+        
+        return neuralNetwork
+        
+    def print_architecture(self,print_architecture_spec:bool):
+        self.__model.print_architecture(print_architecture_spec)
+    
     def __init__( self, model_name:str,
-                    model: nn.Module,
-                    device:torch.device,
-                    lr:float,
+                    model: Model,
+                    device: torch.device,
+                    lr:float=0.001,
                     model_input_dim:Tuple[int, int] = (28,28),
                     batch_size=128, patience:int=20, data_augmentation_perc:float=0,
                     max_epoch:int = 100):
+        
+        #if model is None:
+            
+        
         
         self.device = device
         
@@ -32,7 +73,6 @@ class NeuralNetwork():
         self.__model = model.to(self.device)
         
         #hyperparameters
-        self.__lr = lr
         self.max_epoch = max_epoch
         self.__patience = patience
         self.__batch_size = batch_size
@@ -81,9 +121,9 @@ class NeuralNetwork():
         )
         
         #test dataset loading
-        (test_X, test_y) = load_dataframes(isTrain=False)
+        (test_X, self.test_y) = load_dataframes(isTrain=False)
 
-        test_dataset = ImageDataset(test_X, test_y,
+        test_dataset = ImageDataset(test_X, self.test_y,
                                     transform_dimension=model_input_dim,
                                     data_augmentation_perc=0, device=self.device)
         
@@ -141,6 +181,7 @@ class NeuralNetwork():
         
         self.__model.eval()
         
+        predictions=[]
         accuracy = 0
         with torch.inference_mode():
             for data, target in self.__test_loader:
@@ -150,12 +191,15 @@ class NeuralNetwork():
                 output_prob = torch.softmax(output, dim=1)
                 prediction = torch.argmax(output_prob, dim=1)
                 
+                predictions.append(prediction.cpu().numpy())
+                
                 accuracy += torch.sum(prediction==target).item()
                 
-                
             accuracy = accuracy / len(self.__test_loader.dataset) # type: ignore
+            
+        predictions = np.concatenate( predictions, axis=0 )
         
-        return accuracy
+        return accuracy, predictions
     
     def __save_model(self):
         
@@ -182,7 +226,7 @@ class NeuralNetwork():
         
         return torch.load(model_path)
 
-    def load_model(self): 
+    def __load_model(self): 
         
         checkpoint = NeuralNetwork.__load(self.__model_name)
         
@@ -197,6 +241,7 @@ class NeuralNetwork():
     @staticmethod
     def return_stats(model_name:str):
         return pd.DataFrame(NeuralNetwork.__load(model_name)["stats"])
+    
     class __EarlyStopper:
         def __init__(self, patience=20):
             self.patience = patience
@@ -263,7 +308,7 @@ class NeuralNetwork():
         epochs_bar.write(to_write)
         epochs_bar.close()
         
-        self.load_model() #load best model configuration
+        self.__load_model() #load best model configuration
         
         return sum(self.__stats["training_time_per_epoch"])
     
@@ -271,3 +316,13 @@ class NeuralNetwork():
         if self.__current_epoch != 0:
             assert self.__current_epoch < self.max_epoch, f"Model already trained for {self.max_epoch} epochs: change this value to continue training"
             print(f"Restarting training from epoch {self.__current_epoch + 1}")
+            
+    def plot_confusion_matrix(self):
+        
+        fig, ax = plt.subplots(figsize=(20,10))
+        ax.set_title(self.__model_name)
+        
+        _, prediction = self.test()
+        
+        cm = confusion_matrix(self.test_y, prediction, labels=list(response_transform.keys()))
+        ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=list(response_transform.values())).plot(ax=ax)

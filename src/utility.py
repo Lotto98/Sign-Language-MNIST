@@ -94,6 +94,7 @@ def load_test_results(base_model_name:str):
         
         result = pd.read_parquet(f"../models/{name}")
         result.insert(0, "architecture_id", i)
+        result.reset_index(names="test_id", inplace=True)
         
         results.append(result)
         

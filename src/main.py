@@ -18,7 +18,7 @@ import pandas as pd
 import time
 
 def single_test(model_name:str,
-                model:nn.Module,
+                model:Model,
                 device:torch.device,
                 batch_size:int,
                 patience:int,
@@ -31,7 +31,7 @@ def single_test(model_name:str,
     train_time = net.full_training()
     
     start = time.perf_counter()
-    accuracy = net.test()
+    accuracy, _ = net.test()
     end = time.perf_counter()
     
     return accuracy, end - start, train_time
