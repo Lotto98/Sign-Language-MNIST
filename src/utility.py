@@ -12,7 +12,10 @@ from typing import Tuple
 from os import listdir
 from os.path import isfile
 
-#from NeuralNetwork import NeuralNetwork
+from random import randint
+
+from PIL import Image
+
 
 response_transform={n:chr(n+65) for n in range(0,26)}
 
@@ -49,6 +52,54 @@ def plot_images(train_X:pd.DataFrame, train_Y:pd.Series, ran:int=666):
                 to_show=np.zeros((28,28))
             
             ax.imshow(to_show,cmap='gray')
+
+def sample_image(index:int=-1):
+    
+    test_X, test_y  = load_dataframes(isTrain=False)
+    
+    if index==-1:
+        index = randint(0, len(test_X)-1)
+        print(f"Sampled image with index {index}")
+    
+    image = test_X.iloc[10]
+    response = test_y.iloc[10]
+    
+    plot_image(image)
+    print(f"True label: {response_transform[response]}")
+    
+    return image, response
+
+def load_my_image(title:str):
+    
+    img_path = os.getcwd()+'/../other_data/'+title
+
+    img = Image.open(img_path).convert('L')
+    img = img.resize((28,28))
+
+    numpydata = np.asarray(img).reshape(28*28)
+
+    image = pd.Series(numpydata)
+    
+    return image
+
+def load_all_my_images():
+    
+    images=[]
+    responses=[]
+    
+    titles = os.listdir(os.getcwd()+'/../other_data/')
+    
+    for title in titles:
+        images.append(load_my_image(title))
+        responses.append(title.replace(".jpg",""))
+        
+    return images, responses
+    
+def plot_image(image:pd.Series):
+    fig, ax = plt.subplots(figsize=(3,3))
+    ax.axis('off')
+    ax.imshow(image.to_numpy().reshape(28,28),cmap="gray")
+    plt.show()
             
 def save_dataframes(train_X:pd.DataFrame, test_X:pd.DataFrame,
                     train_Y:pd.Series, test_Y:pd.Series):

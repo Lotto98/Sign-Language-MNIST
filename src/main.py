@@ -1,8 +1,7 @@
-from NeuralNetwork import NeuralNetwork
+from NeuralNetwork import NeuralNetwork, Model, Classifier_2, Classifier_3, LeNet5
 
-from base_models import Model, Classifier_1, Classifier_2, Classifier_3, LeNet5
+from base_models import Classifier_1
 
-import torch.nn as nn
 import torch
 
 from typing import Tuple
@@ -121,6 +120,6 @@ def multiple_architectures_tests(model_name:str, n_conv_layers:int):
 
         single_architecture_tests(results, model, architecture_name, model_input_dim, device)
         
-single_architecture_tests(dict(), LeNet5(torch.device("cuda")), "LeNet5", (32,32),torch.device("cuda"))
+#single_architecture_tests(dict(), LeNet5(torch.device("cuda")), "LeNet5", (32,32),torch.device("cuda"))
 
-multiple_architectures_tests("Classifier_3", 3)
+#multiple_architectures_tests("Classifier_3", 3)

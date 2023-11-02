@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader
 from ImageDataset import ImageDataset
-from utility import load_dataframes, response_transform
+from utility import load_dataframes, response_transform, plot_image, load_all_my_images
 
 import os
 from tqdm import tqdm
@@ -19,6 +19,7 @@ import time
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from IPython.display  import display
 
 from base_models import Model, Classifier_2, Classifier_3, LeNet5
 
@@ -27,18 +28,18 @@ class NeuralNetwork():
     @staticmethod
     def load_NN(model_hyperparameters:pd.Series, architecture_id_to_model_name: dict, device: torch.device, model_input_dim):
         
-        model_name = architecture_id_to_model_name[model_hyperparameters["architecture_id"]] + "_test_" + str(model_hyperparameters["test_id"])
+        model_name = architecture_id_to_model_name[model_hyperparameters["architecture_id"]] + "_test_" + str(int(model_hyperparameters["test_id"]))
         
-        do_dropout=model_hyperparameters["do_dropout"]
+        print(model_name)
         
         if "Classifier_2" in model_name:
             model = Classifier_2(device=device,
-                                    n_neurons_molt_factor=model_hyperparameters["n_neurons_molt_factor"],
-                                    do_dropout=do_dropout)
+                                    n_neurons_molt_factor=float(model_hyperparameters["n_neurons_molt_factor"]),
+                                    do_dropout=model_hyperparameters["do_dropout"])
         elif "Classifier_3" in model_name:
             model = Classifier_3(device=device,
-                                    n_neurons_molt_factor=model_hyperparameters["n_neurons_molt_factor"],
-                                    do_dropout=do_dropout)
+                                    n_neurons_molt_factor=float(model_hyperparameters["n_neurons_molt_factor"]),
+                                    do_dropout=model_hyperparameters["do_dropout"])
         elif "LeNet5" in model_name:
             model = LeNet5(device=device)
         else:
@@ -62,10 +63,6 @@ class NeuralNetwork():
                     model_input_dim:Tuple[int, int] = (28,28),
                     batch_size=128, patience:int=20, data_augmentation_perc:float=0,
                     max_epoch:int = 100):
-        
-        #if model is None:
-            
-        
         
         self.device = device
         
@@ -121,9 +118,9 @@ class NeuralNetwork():
         )
         
         #test dataset loading
-        (test_X, self.test_y) = load_dataframes(isTrain=False)
+        (self.test_X, self.test_y) = load_dataframes(isTrain=False)
 
-        test_dataset = ImageDataset(test_X, self.test_y,
+        test_dataset = ImageDataset(self.test_X, self.test_y,
                                     transform_dimension=model_input_dim,
                                     data_augmentation_perc=0, device=self.device)
         
@@ -200,6 +197,33 @@ class NeuralNetwork():
         predictions = np.concatenate( predictions, axis=0 )
         
         return accuracy, predictions
+    
+    def get_wrong_predictions(self):
+        
+        test_y = self.test_y.to_numpy()
+        _, pred_y = self.test()
+        
+        wrong_predictions = np.where(np.not_equal(test_y, pred_y))[0]
+        
+        return self.test_X.iloc[wrong_predictions], self.test_y.iloc[wrong_predictions].apply(lambda x:response_transform[x])
+    
+    def predict(self, image:pd.Series):
+        
+        assert self.__current_epoch != 0, "Train the model first before testing it"
+        
+        numpy_image = image.to_numpy(dtype=np.float32)
+        numpy_image = numpy_image.reshape(1,1,28,28)
+        
+        torch_image = torch.from_numpy(numpy_image).to(self.device)
+        
+        self.__model.eval()
+        with torch.inference_mode():
+            output = self.__model(torch_image)
+            
+        softmax = {response_transform[i]: round(prob, 4) 
+                    for i, prob in enumerate(torch.softmax(output, dim=1).cpu().numpy()[0])}
+        
+        return softmax
     
     def __save_model(self):
         
@@ -326,3 +350,33 @@ class NeuralNetwork():
         
         cm = confusion_matrix(self.test_y, prediction, labels=list(response_transform.keys()))
         ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=list(response_transform.values())).plot(ax=ax)
+        plt.show()
+        
+    def explore_wrong_predictions(self):
+        
+        self.plot_confusion_matrix()
+        
+        wrong_predictions_images, true_responses = self.get_wrong_predictions()
+        
+        print("WRONG PREDICTIONS:")
+        
+        for i, (_, wrong_pred) in enumerate(wrong_predictions_images.iterrows()):
+            plot_image(wrong_pred)
+            print(f"true response: {true_responses.iloc[i]}")
+            print("predicted:")
+            display(self.predict(wrong_pred))
+            print("=====================================\n\n")
+    
+    def custom_images_test(self):
+        
+        images, responses = load_all_my_images()
+        
+        for image, response in zip(images, responses):
+            softmax = self.predict(image)
+            
+            plot_image(image)
+            print(f"True response: {response}")
+            
+            print(f"Predicted response: {max(softmax, key= lambda x: softmax[x])}")
+            display(self.predict(image))
+            print("================================")
