@@ -371,12 +371,20 @@ class NeuralNetwork():
         
         images, responses = load_all_my_images()
         
+        predictions=[]
+        
         for image, response in zip(images, responses):
             softmax = self.predict(image)
+            prediction = max(softmax, key= lambda x: softmax[x])
+            
+            predictions.append(prediction)
             
             plot_image(image)
             print(f"True response: {response}")
             
-            print(f"Predicted response: {max(softmax, key= lambda x: softmax[x])}")
+            print(f"Predicted response: {prediction}")
             display(self.predict(image))
             print("================================")
+        
+        cm=confusion_matrix(responses, predictions)
+        ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[x for x in response_transform.values() if x!="Z" and x!="J"]).plot()

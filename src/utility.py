@@ -88,6 +88,7 @@ def load_all_my_images():
     responses=[]
     
     titles = os.listdir(os.getcwd()+'/../other_data/')
+    titles.sort()
     
     for title in titles:
         if isfile(os.getcwd()+'/../other_data/'+title):
