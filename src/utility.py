@@ -61,8 +61,8 @@ def sample_image(index:int=-1):
         index = randint(0, len(test_X)-1)
         print(f"Sampled image with index {index}")
     
-    image = test_X.iloc[10]
-    response = test_y.iloc[10]
+    image = test_X.iloc[index]
+    response = test_y.iloc[index]
     
     plot_image(image)
     print(f"True label: {response_transform[response]}")

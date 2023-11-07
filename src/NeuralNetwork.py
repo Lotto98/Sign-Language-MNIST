@@ -26,7 +26,7 @@ from base_models import Model, Classifier_2, Classifier_3, LeNet5
 class NeuralNetwork():
     
     @staticmethod
-    def load_NN(model_hyperparameters:pd.Series, architecture_id_to_model_name: dict, device: torch.device, model_input_dim):
+    def load_NN(model_hyperparameters:pd.Series, architecture_id_to_model_name: dict, device: torch.device, model_input_dim: Tuple[int, int]):
         
         model_name = architecture_id_to_model_name[model_hyperparameters["architecture_id"]] + "_test_" + str(int(model_hyperparameters["test_id"]))
         
@@ -90,6 +90,8 @@ class NeuralNetwork():
                         "test_accuracies":[],
                         #"best_epoch":-1,
                         "training_time_per_epoch": []}
+        
+        self.__model_input_dim = model_input_dim
         
         self.__create_dataloaders(model_input_dim)
         
@@ -212,7 +214,7 @@ class NeuralNetwork():
         assert self.__current_epoch != 0, "Train the model first before testing it"
         
         numpy_image = image.to_numpy(dtype=np.float32)
-        numpy_image = numpy_image.reshape(1,1,28,28)
+        numpy_image.resize((1,1, self.__model_input_dim[0], self.__model_input_dim[1]))
         
         torch_image = torch.from_numpy(numpy_image).to(self.device)
         
@@ -371,13 +373,18 @@ class NeuralNetwork():
         
         images, responses = load_all_my_images()
         
+        accuracy=0
+        
         predictions=[]
         
         for image, response in zip(images, responses):
             softmax = self.predict(image)
-            prediction = max(softmax, key= lambda x: softmax[x])
             
+            prediction = max(softmax, key= lambda x: softmax[x])
             predictions.append(prediction)
+            
+            if response==prediction:
+                accuracy+=1
             
             plot_image(image)
             print(f"True response: {response}")
@@ -385,6 +392,8 @@ class NeuralNetwork():
             print(f"Predicted response: {prediction}")
             display(self.predict(image))
             print("================================")
+        
+        print(accuracy/len(images))
         
         cm=confusion_matrix(responses, predictions)
         ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[x for x in response_transform.values() if x!="Z" and x!="J"]).plot()
