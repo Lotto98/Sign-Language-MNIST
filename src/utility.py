@@ -90,8 +90,9 @@ def load_all_my_images():
     titles = os.listdir(os.getcwd()+'/../other_data/')
     
     for title in titles:
-        images.append(load_my_image(title))
-        responses.append(title.replace(".jpg",""))
+        if isfile(os.getcwd()+'/../other_data/'+title):
+            images.append(load_my_image(title))
+            responses.append(title.replace(".jpeg",""))
         
     return images, responses
     
