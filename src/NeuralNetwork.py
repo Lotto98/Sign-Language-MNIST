@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader
 from ImageDataset import ImageDataset
-from utility import load_dataframes, response_transform, plot_image, load_all_my_images
+from utility import load_dataframes, response_transform, plot_image
 
 import os
 from tqdm import tqdm
@@ -337,11 +337,6 @@ class NeuralNetwork():
         self.__load_model() #load best model configuration
         
         return sum(self.__stats["training_time_per_epoch"])
-    
-    def prova(self):
-        if self.__current_epoch != 0:
-            assert self.__current_epoch < self.max_epoch, f"Model already trained for {self.max_epoch} epochs: change this value to continue training"
-            print(f"Restarting training from epoch {self.__current_epoch + 1}")
             
     def plot_confusion_matrix(self):
         
@@ -369,6 +364,7 @@ class NeuralNetwork():
             display(self.predict(wrong_pred))
             print("=====================================\n\n")
     
+"""
     def custom_images_test(self):
         
         images, responses = load_all_my_images()
@@ -397,3 +393,4 @@ class NeuralNetwork():
         
         cm=confusion_matrix(responses, predictions)
         ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[x for x in response_transform.values() if x!="Z" and x!="J"]).plot()
+"""

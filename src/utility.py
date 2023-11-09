@@ -69,6 +69,7 @@ def sample_image(index:int=-1):
     
     return image, response
 
+"""
 def load_my_image(title:str):
     
     img_path = os.getcwd()+'/../other_data/'+title
@@ -93,10 +94,11 @@ def load_all_my_images():
     for title in titles:
         if isfile(os.getcwd()+'/../other_data/'+title):
             images.append(load_my_image(title))
-            responses.append(title.replace(".jpeg",""))
+            responses.append(title.replace(".jpg",""))
         
     return images, responses
-    
+"""
+
 def plot_image(image:pd.Series):
     fig, ax = plt.subplots(figsize=(3,3))
     ax.axis('off')
