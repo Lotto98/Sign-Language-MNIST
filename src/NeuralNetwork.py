@@ -227,18 +227,23 @@ class NeuralNetwork():
         
         return softmax
     
-    def __save_model(self):
+    def __save_model(self, only_stats:bool=False):
         
         model_path = os.getcwd()+"/../models/"+self.__model_name+"/"
         if not os.path.exists(model_path):
             os.mkdir(model_path) 
         
-        torch.save({
-            'epoch': self.__current_epoch,
-            'stats': self.__stats,
-            'model_state_dict': self.__model.state_dict(),
-            'optimizer_state_dict': self.__optimizer.state_dict(),
-            }, model_path+"best.tar")
+        if not only_stats:
+            torch.save({
+                'epoch': self.__current_epoch,
+                'stats': self.__stats,
+                'model_state_dict': self.__model.state_dict(),
+                'optimizer_state_dict': self.__optimizer.state_dict(),
+                }, model_path+"best.tar")
+        else:
+            checkpoint = NeuralNetwork.__load(self.__model_name)
+            checkpoint["stats"] = self.__stats
+            torch.save(checkpoint, model_path+"best.tar")
     
     @staticmethod
     def __load(model_name:str):
@@ -264,9 +269,9 @@ class NeuralNetwork():
         self.__current_epoch = checkpoint["epoch"]
         self.__stats = checkpoint["stats"]
         
-    @staticmethod
-    def return_stats(model_name:str):
-        return pd.DataFrame(NeuralNetwork.__load(model_name)["stats"])
+    
+    def return_stats(self):
+        return pd.DataFrame(self.__stats)
     
     class __EarlyStopper:
         def __init__(self, patience=20):
@@ -326,6 +331,8 @@ class NeuralNetwork():
             
             if early_stopper.save_model:
                 self.__save_model()
+            else:
+                self.__save_model(only_stats=True)
     
             if early_stopper.stop:
                 to_write = f"Early stopped at epoch {epoch}"
