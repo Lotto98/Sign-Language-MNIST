@@ -318,7 +318,7 @@ class NeuralNetwork():
             
             end_training_time = time.perf_counter()
             
-            accuracy = self.test()
+            accuracy,_ = self.test()
             
             self.__stats["epochs"].append(epoch)
             self.__stats["train_losses"].append(train_loss)
