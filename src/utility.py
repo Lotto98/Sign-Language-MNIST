@@ -17,7 +17,9 @@ from random import randint
 from PIL import Image
 
 
-response_transform={n:chr(n+65) for n in range(0,26) if n!=9}
+response_transform={n:chr(n+65) for n in range(0,9)} | {n:chr(n+66) for n in range(9,24)}
+
+print(response_transform)
 
 def get_dataset(path:str):
     
@@ -36,22 +38,31 @@ def plot_images(train_X:pd.DataFrame, train_Y:pd.Series, ran:int=666):
 
     axs = [item for sublist in axs for item in sublist]
 
-    for k,ax in enumerate(axs):
+    for k, ax in enumerate(axs):
         ax.axis("off")
         
-        if k<=25:
-            ax.set_title(response_transform[k])
+        if k<25:
             
-            if k!=9 and k!=25: #impossible to distinguish J and Z
+            if k==9:
+                ax.set_title("J")
+                to_show=np.zeros((28,28))
+            else:
+                if k>9:
+                    k=k-1
                 
+                ax.set_title(response_transform[k])
+
                 indexes = train_Y[train_Y==k].index
                 i = indexes[ran % len(indexes)]
                 
                 to_show=np.reshape(train_X.iloc[i].to_numpy(),(28,28)) # type: ignore
-            else:
-                to_show=np.zeros((28,28))
-            
+                
             ax.imshow(to_show,cmap='gray')
+            
+        if k==25:
+            ax.set_title("Z")
+            to_show=np.zeros((28,28))
+            ax.imshow(to_show,cmap='gray') # type: ignore
 
 def sample_image(index:int=-1):
     
