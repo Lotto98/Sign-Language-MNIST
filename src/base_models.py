@@ -75,7 +75,7 @@ class Classifier_1(Model):
             nn.ReLU(),
         )
         
-        self.Linear3 = nn.Linear(32, 25)
+        self.Linear3 = nn.Linear(32, 24)
         
     def forward(self, x):
         x = x.view(x.size(0), -1) #flatten
