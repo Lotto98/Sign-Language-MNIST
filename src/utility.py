@@ -17,7 +17,7 @@ from random import randint
 from PIL import Image
 
 
-response_transform={n:chr(n+65) for n in range(0,26)}
+response_transform={n:chr(n+65) for n in range(0,26) if n!=9}
 
 def get_dataset(path:str):
     
