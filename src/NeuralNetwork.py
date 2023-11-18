@@ -21,7 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IPython.display  import display
 
-from base_models import Model, Classifier_2, Classifier_3, LeNet5
+from base_models import Model, Classifier_1, Classifier_2, Classifier_3, LeNet5
 
 class NeuralNetwork():
     
@@ -30,9 +30,13 @@ class NeuralNetwork():
         
         model_name = architecture_id_to_model_name[model_hyperparameters["architecture_id"]] + "_test_" + str(int(model_hyperparameters["test_id"]))
         
-        print(model_name)
+        print_spec=True
         
-        if "Classifier_2" in model_name:
+        if "Classifier_1" in model_name:
+            model = Classifier_1(device=device,
+                                    n_neurons_molt_factor=float(model_hyperparameters["n_neurons_molt_factor"]),
+                                    do_dropout=model_hyperparameters["do_dropout"])
+        elif "Classifier_2" in model_name:
             model = Classifier_2(device=device,
                                     n_neurons_molt_factor=float(model_hyperparameters["n_neurons_molt_factor"]),
                                     do_dropout=model_hyperparameters["do_dropout"])
@@ -42,14 +46,21 @@ class NeuralNetwork():
                                     do_dropout=model_hyperparameters["do_dropout"])
         elif "LeNet5" in model_name:
             model = LeNet5(device=device)
+            print_spec = False
         else:
-            raise IOError("Error")
+            raise IOError("Model not found")
         
-        neuralNetwork =NeuralNetwork(model_name, model, device, float(model_hyperparameters["lr"]),
+        neuralNetwork = NeuralNetwork(model_name, model, device, float(model_hyperparameters["lr"]),
                                 model_input_dim, int(model_hyperparameters["batch_size"]),
                                 int(model_hyperparameters["patience"]), float(model_hyperparameters["data_augmentation_perc"]))
         
         neuralNetwork.__load_model()
+        
+        print(f"Loaded model: {model_name}")
+        print("\n")
+        
+        print("Architecture:")
+        neuralNetwork.print_architecture(print_spec)
         
         return neuralNetwork
         
@@ -76,7 +87,7 @@ class NeuralNetwork():
         self.__data_augmentation_perc = data_augmentation_perc
         
         #optimizer
-        self.__optimizer = optim.Adam(model.parameters(),lr = lr, amsgrad=True)
+        self.__optimizer = optim.Adam(model.parameters(), lr = lr, amsgrad=True)
         
         #loss
         self.__loss = nn.CrossEntropyLoss()
