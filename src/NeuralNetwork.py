@@ -9,7 +9,7 @@ from utility import load_dataframes, response_transform, plot_image
 
 import os
 from tqdm import tqdm
-from typing import Tuple
+from typing import Tuple, Dict
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
@@ -50,7 +50,7 @@ class NeuralNetwork():
         else:
             raise IOError("Model not found")
         
-        neuralNetwork = NeuralNetwork(model_name, model, device, float(model_hyperparameters["lr"]),
+        neuralNetwork = NeuralNetwork(model_name, model, device, model_hyperparameters["optimizer"], float(model_hyperparameters["lr"]),
                                 model_input_dim, int(model_hyperparameters["batch_size"]),
                                 int(model_hyperparameters["patience"]), float(model_hyperparameters["data_augmentation_perc"]))
         
@@ -70,6 +70,7 @@ class NeuralNetwork():
     def __init__( self, model_name:str,
                     model: Model,
                     device: torch.device,
+                    optimizer: str,
                     lr:float=0.001,
                     model_input_dim:Tuple[int, int] = (28,28),
                     batch_size=128, patience:int=20, data_augmentation_perc:float=0,
@@ -86,9 +87,14 @@ class NeuralNetwork():
         self.__batch_size = batch_size
         self.__data_augmentation_perc = data_augmentation_perc
         
-        #optimizer
-        self.__optimizer = optim.Adam(model.parameters(), lr = lr, amsgrad=True)
-        
+        #optimizer\
+        match optimizer:
+            case "ADAM":
+                self.__optimizer = optim.Adam(model.parameters(), lr = lr)
+            case "ASMGrad":
+                self.__optimizer = optim.Adam(model.parameters(), lr = lr, amsgrad=True)
+            case _:
+                raise ValueError("Optimizer must be 'ADAM' or 'ASMGrad'")
         #loss
         self.__loss = nn.CrossEntropyLoss()
         
@@ -220,7 +226,7 @@ class NeuralNetwork():
         
         return self.test_X.iloc[wrong_predictions], self.test_y.iloc[wrong_predictions].apply(lambda x:response_transform[x])
     
-    def predict(self, image:pd.Series):
+    def predict(self, image:pd.Series)->Dict[str, float]:
         
         assert self.__current_epoch != 0, "Train the model first before testing it"
         
@@ -376,10 +382,14 @@ class NeuralNetwork():
         print("WRONG PREDICTIONS:")
         
         for i, (_, wrong_pred) in enumerate(wrong_predictions_images.iterrows()):
+            
+            softmax = self.predict(wrong_pred)
+            prediction = max(softmax, key=softmax.get) # type: ignore
+            
             plot_image(wrong_pred)
             print(f"true response: {true_responses.iloc[i]}")
-            print("predicted:")
-            display(self.predict(wrong_pred))
+            print(f"predicted: {prediction}") 
+            display(softmax)
             print("=====================================\n\n")
     
 """

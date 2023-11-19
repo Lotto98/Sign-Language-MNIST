@@ -19,8 +19,6 @@ from PIL import Image
 
 response_transform={n:chr(n+65) for n in range(0,9)} | {n:chr(n+66) for n in range(9,24)}
 
-print(response_transform)
-
 def get_dataset(path:str):
     
     data=pd.read_csv(path)

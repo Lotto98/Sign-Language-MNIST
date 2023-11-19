@@ -1,6 +1,4 @@
-from NeuralNetwork import NeuralNetwork, Model, Classifier_2, Classifier_3, LeNet5
-
-from base_models import Classifier_1
+from NeuralNetwork import NeuralNetwork, Model, Classifier_1, Classifier_2, Classifier_3, LeNet5
 
 import torch
 
@@ -22,9 +20,10 @@ def single_test(model_name:str,
                 batch_size:int,
                 patience:int,
                 data_augmentation_perc:float,
+                optimizer:str,
                 lr:float=0.0001, model_input_dim:Tuple[int,int] = (28,28))->Tuple[float,float,float]:
 
-    net = NeuralNetwork(model_name, model, device,
+    net = NeuralNetwork(model_name, model, device, optimizer,
                         lr, model_input_dim, batch_size, patience, data_augmentation_perc)
 
     train_time = net.full_training()
@@ -37,12 +36,14 @@ def single_test(model_name:str,
 
 def single_architecture_tests(results: dict, model: Model, architecture_name:str, model_input_dim:Tuple[int,int], device:torch.device):
     
+    optimizers=["ADAM","AMSGrad"]
     lrs = [0.0005, 0.0001, 0.00001, 0.000001]
     batch_sizes = [32, 64, 128, 256, 512]
     patiences = [5, 10, 15, 20]
     data_augmentation_percs=[0, 0.25, 0.5, 0.75]
     
     results.update({
+        "optimizer":[],
         "lr":[],
         "batch_size":[],
         "patience":[],
@@ -52,23 +53,24 @@ def single_architecture_tests(results: dict, model: Model, architecture_name:str
         "train_times":[],
     })
     
-    prod = [x for x in product(lrs, batch_sizes, patiences, data_augmentation_percs)]
+    prod = [x for x in product(optimizers, lrs, batch_sizes, patiences, data_augmentation_percs)]
     
     bar = tqdm(enumerate(prod), total=len(prod), desc = "Parameters")
     
-    for i, (lr, batch_size, patience, data_augmentation_perc) in bar:
+    for i, (optimizer, lr, batch_size, patience, data_augmentation_perc) in bar:
         
-        bar.set_description(f"Training with parameters: lr={lr}, batch_size={batch_size}, patience={patience}, data_augmentation_perc={ data_augmentation_perc}")
+        bar.set_description(f"Training parameters: optimizer={optimizer}, lr={lr}, batch_size={batch_size}, patience={patience}, data_augmentation_perc={ data_augmentation_perc}")
         
         name = architecture_name +f"_test_{i}"
         
+        results["optimizer"].append(optimizer)
         results["lr"].append(lr)
         results["batch_size"].append(batch_size)
         results["patience"].append(patience)
         results["data_augmentation_perc"].append(data_augmentation_perc)
         
         accuracy, test_time, train_time = single_test(name, model, device,
-                                                        batch_size, patience, data_augmentation_perc, lr, model_input_dim) 
+                                                        batch_size, patience, data_augmentation_perc, optimizer, lr, model_input_dim) 
         
         results["test_accuracies"].append(accuracy)
         results["test_times"].append(test_time)
