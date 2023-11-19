@@ -36,7 +36,7 @@ def single_test(model_name:str,
 
 def single_architecture_tests(results: dict, model: Model, architecture_name:str, model_input_dim:Tuple[int,int], device:torch.device):
     
-    optimizers=["ADAM","AMSGrad"]
+    optimizers=["AMSGrad","ADAM"]
     lrs = [0.0005, 0.0001, 0.00001, 0.000001]
     batch_sizes = [32, 64, 128, 256, 512]
     patiences = [5, 10, 15, 20]
