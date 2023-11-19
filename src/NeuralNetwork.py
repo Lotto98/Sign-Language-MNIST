@@ -91,7 +91,7 @@ class NeuralNetwork():
         match optimizer:
             case "ADAM":
                 self.__optimizer = optim.Adam(model.parameters(), lr = lr)
-            case "ASMGrad":
+            case "AMSGrad":
                 self.__optimizer = optim.Adam(model.parameters(), lr = lr, amsgrad=True)
             case _:
                 raise ValueError("Optimizer must be 'ADAM' or 'ASMGrad'")
@@ -355,7 +355,7 @@ class NeuralNetwork():
                 to_write = f"Early stopped at epoch {epoch}"
                 break
             
-        epochs_bar.write(to_write)
+        #epochs_bar.write(to_write)
         epochs_bar.close()
         
         self.__load_model() #load best model configuration

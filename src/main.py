@@ -122,7 +122,7 @@ def multiple_architectures_tests(model_name:str, n_conv_layers:int):
 
         single_architecture_tests(results, model, architecture_name, model_input_dim, device)
         
-#single_architecture_tests(dict(), LeNet5(torch.device("cuda")), "LeNet5", (32,32), torch.device("cuda"))
-#multiple_architectures_tests("Classifier_1", 0)
-#multiple_architectures_tests("Classifier_2", 2)
+single_architecture_tests(dict(), LeNet5(torch.device("cuda")), "LeNet5", (32,32), torch.device("cuda"))
+multiple_architectures_tests("Classifier_1", 0)
+multiple_architectures_tests("Classifier_2", 2)
 multiple_architectures_tests("Classifier_3", 3)
