@@ -87,7 +87,7 @@ class NeuralNetwork():
         self.__batch_size = batch_size
         self.__data_augmentation_perc = data_augmentation_perc
         
-        #optimizer\
+        #optimizer
         match optimizer:
             case "ADAM":
                 self.__optimizer = optim.Adam(model.parameters(), lr = lr)
