@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import DataLoader
-from ImageDataset import ImageDataset
+from ImageDataset import ImageDataset, T
 from utility import load_dataframes, response_transform, plot_image
 
 import os
@@ -231,14 +231,16 @@ class NeuralNetwork():
         assert self.__current_epoch != 0, "Train the model first before testing it"
         
         numpy_image = image.to_numpy(dtype=np.float32)
-        numpy_image.resize((1,1, self.__model_input_dim[0], self.__model_input_dim[1]))
         
         torch_image = torch.from_numpy(numpy_image).to(self.device)
+        torch_image = torch_image.reshape(1,1,28,28)
+        
+        torch_image = T.Resize(self.__model_input_dim, antialias = False)(torch_image)  # type: ignore
         
         self.__model.eval()
         with torch.inference_mode():
             output = self.__model(torch_image)
-            
+    
         softmax = {response_transform[i]: round(prob, 4) 
                     for i, prob in enumerate(torch.softmax(output, dim=1).cpu().numpy()[0])}
         
