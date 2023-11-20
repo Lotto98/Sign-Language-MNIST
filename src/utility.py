@@ -185,3 +185,35 @@ def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model
     print(f"best accuracy: {result['test_accuracies'].max():.4f} with hyperparameters:")
     print(result.iloc[result["test_accuracies"].argmax()]
             .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"]),"\n")
+
+def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(12,7), isLeNet5:bool=False, ):
+    
+    if not isLeNet5:
+        fig,ax=plt.subplots(figsize=plots_dimensions)
+        all_results_sorted = all_results.sort_values(by="do_dropout")
+        all_results_sorted.boxplot(column =["test_accuracies"], by="do_dropout", ax=ax)
+        
+        fig,ax=plt.subplots(figsize=plots_dimensions)
+        all_results.boxplot(column =["test_accuracies"], by="n_neurons_molt_factor", ax=ax)
+    
+    fig,ax=plt.subplots(figsize=plots_dimensions)
+    all_results.boxplot(column =["test_accuracies"], by="lr", ax=ax)
+    
+    fig,ax=plt.subplots(figsize=plots_dimensions)
+    all_results.boxplot(column =["test_accuracies"], by="batch_size", ax=ax)
+    
+    fig,ax=plt.subplots(figsize=plots_dimensions)
+    all_results.boxplot(column =["test_accuracies"], by="patience", ax=ax)
+    
+    fig,ax=plt.subplots(figsize=plots_dimensions)
+    all_results.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=ax)
+    
+    fig,ax=plt.subplots(figsize=plots_dimensions)
+    ax.scatter(all_results["test_times"], all_results["test_accuracies"])
+    ax.set_xlabel("test time")
+    ax.set_ylabel("test accuracy")
+    
+    fig,ax=plt.subplots(figsize=(20,10))
+    ax.scatter(all_results["train_times"], all_results["test_accuracies"])
+    ax.set_xlabel("training time")
+    ax.set_ylabel("test accuracy")
