@@ -186,34 +186,59 @@ def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model
     print(result.iloc[result["test_accuracies"].argmax()]
             .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"]),"\n")
 
-def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(12,7), isLeNet5:bool=False, ):
+def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10), isLeNet5:bool=False):
+    
+    
+    all_results_AMSGrad = all_results[all_results["optimizer"]=="AMSGrad"]
+    all_results_ADAM = all_results[all_results["optimizer"]=="ADAM"]
     
     if not isLeNet5:
-        fig,ax=plt.subplots(figsize=plots_dimensions)
-        all_results_sorted = all_results.sort_values(by="do_dropout")
-        all_results_sorted.boxplot(column =["test_accuracies"], by="do_dropout", ax=ax)
         
-        fig,ax=plt.subplots(figsize=plots_dimensions)
-        all_results.boxplot(column =["test_accuracies"], by="n_neurons_molt_factor", ax=ax)
+        fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+        
+        all_results_AMSGrad_sorted = all_results_AMSGrad.sort_values(by="do_dropout")
+        all_results_AMSGrad_sorted.boxplot(column =["test_accuracies"], by="do_dropout", ax=axs[0])
+        
+        all_results_ADAM_sorted = all_results_ADAM.sort_values(by="do_dropout")
+        all_results_ADAM_sorted.boxplot(column =["test_accuracies"], by="do_dropout", ax=axs[1])
+        
+        axs[0].title.set_text('AMSGrad')
+        axs[1].title.set_text('ADAM')
+        
+        fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+        
+        all_results_AMSGrad.boxplot(column =["test_accuracies"], by="n_neurons_molt_factor", ax=axs[0])
+        all_results_ADAM.boxplot(column =["test_accuracies"], by="n_neurons_molt_factor", ax=axs[1])
+        axs[0].title.set_text('AMSGrad')
+        axs[1].title.set_text('ADAM')
     
-    fig,ax=plt.subplots(figsize=plots_dimensions)
-    all_results.boxplot(column =["test_accuracies"], by="lr", ax=ax)
     
-    fig,ax=plt.subplots(figsize=plots_dimensions)
-    all_results.boxplot(column =["test_accuracies"], by="batch_size", ax=ax)
+    fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="lr", ax=axs[0])
+    all_results_ADAM.boxplot(column =["test_accuracies"], by="lr", ax=axs[1])
     
-    fig,ax=plt.subplots(figsize=plots_dimensions)
-    all_results.boxplot(column =["test_accuracies"], by="patience", ax=ax)
+    axs[0].title.set_text('AMSGrad')
+    axs[1].title.set_text('ADAM')
     
-    fig,ax=plt.subplots(figsize=plots_dimensions)
-    all_results.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=ax)
     
-    fig,ax=plt.subplots(figsize=plots_dimensions)
-    ax.scatter(all_results["test_times"], all_results["test_accuracies"])
-    ax.set_xlabel("test time")
-    ax.set_ylabel("test accuracy")
+    fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="batch_size", ax=axs[0])
+    all_results_ADAM.boxplot(column =["test_accuracies"], by="batch_size", ax=axs[1])
     
-    fig,ax=plt.subplots(figsize=(20,10))
-    ax.scatter(all_results["train_times"], all_results["test_accuracies"])
-    ax.set_xlabel("training time")
-    ax.set_ylabel("test accuracy")
+    axs[0].title.set_text('AMSGrad')
+    axs[1].title.set_text('ADAM')
+    
+    fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="patience", ax=axs[0])
+    all_results_ADAM.boxplot(column =["test_accuracies"], by="patience", ax=axs[1])
+    
+    axs[0].title.set_text('AMSGrad')
+    axs[1].title.set_text('ADAM')
+    
+    
+    fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[0])
+    all_results_ADAM.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[1])
+    
+    axs[0].title.set_text('AMSGrad')
+    axs[1].title.set_text('ADAM')
