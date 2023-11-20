@@ -42,7 +42,7 @@ class LeNet5(Model):
         self.relu = nn.ReLU()
         self.fc1 = nn.Linear(120, 84)
         self.relu1 = nn.ReLU()
-        self.fc2 = nn.Linear(84, 25)
+        self.fc2 = nn.Linear(84, 24)
         
     def forward(self, x):
         out = self.layer1(x)
