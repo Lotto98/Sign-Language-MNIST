@@ -369,11 +369,13 @@ class NeuralNetwork():
         fig, ax = plt.subplots(figsize=(20,10))
         ax.set_title(self.__model_name)
         
-        _, prediction = self.test()
+        accuracy, prediction = self.test()
         
         cm = confusion_matrix(self.test_y, prediction, labels=list(response_transform.keys()))
         ConfusionMatrixDisplay(confusion_matrix=cm,display_labels=list(response_transform.values())).plot(ax=ax)
         plt.show()
+        
+        print(accuracy)
         
     def explore_wrong_predictions(self):
         
@@ -393,7 +395,37 @@ class NeuralNetwork():
             print(f"predicted: {prediction}") 
             display(softmax)
             print("=====================================\n\n")
-    
+            
+    def plot_metrics(self):
+        
+        fig,ax=plt.subplots(figsize=(20,10))
+        
+        log_transform = lambda x: np.log([np.finfo(np.float64).tiny if loss==0 else loss for loss in x])
+        
+        ax.plot(self.__stats["epochs"],(self.__stats["eval_losses"]), color="blue", label="evaluation loss")
+        ax.plot(self.__stats["epochs"],(self.__stats["train_losses"]), color="orange", label="training loss")
+        ax.axvline(self.__current_epoch, label="best epoch (early stopping)", linestyle="--", color="red")
+        ax.legend(loc="upper right")
+        ax.set_title("Training and evaluation loss")
+        ax.set_xlabel("epochs")
+        ax.set_ylabel("loss")
+        
+        fig,ax=plt.subplots(figsize=(20,10))
+        
+        ax.plot(self.__stats["epochs"],log_transform(self.__stats["eval_losses"]), color="blue", label="evaluation loss")
+        ax.plot(self.__stats["epochs"],log_transform(self.__stats["train_losses"]), color="orange", label="training loss")
+        ax.axvline(self.__current_epoch, label="best epoch (early stopping)", linestyle="--", color="red")
+        ax.legend(loc="upper right")
+        ax.set_title("Training and evaluation loss (log scale)")
+        ax.set_xlabel("epochs")
+        ax.set_ylabel("log( loss )")
+
+        fig,ax=plt.subplots(figsize=(20,10))
+        ax.plot(self.__stats["epochs"],self.__stats["test_accuracies"])
+        ax.axvline(self.__current_epoch)
+        ax.set_title("Test accuracy for each training epoch")
+        ax.set_xlabel("epochs")
+        ax.set_ylabel("accuracy")
 """
     def custom_images_test(self):
         
