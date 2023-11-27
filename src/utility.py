@@ -180,65 +180,65 @@ def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model
     
     print(f"worst accuracy: {result['test_accuracies'].min():.4f} with hyperparameters:")
     print(result.iloc[result["test_accuracies"].argmin()]
-            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"]),"\n")
+            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
     
     print(f"best accuracy: {result['test_accuracies'].max():.4f} with hyperparameters:")
     print(result.iloc[result["test_accuracies"].argmax()]
-            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"]),"\n")
+            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
 
 def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10), isLeNet5:bool=False):
-    
-    
-    all_results_AMSGrad = all_results[all_results["optimizer"]=="AMSGrad"]
-    all_results_ADAM = all_results[all_results["optimizer"]=="ADAM"]
     
     if not isLeNet5:
         
         fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
         
-        all_results_AMSGrad_sorted = all_results_AMSGrad.sort_values(by="do_dropout")
-        all_results_AMSGrad_sorted.boxplot(column =["test_accuracies"], by="do_dropout", ax=axs[0])
+        all_results_sorted = all_results.sort_values(by="do_dropout")
+        all_results_sorted.boxplot(column ="test_accuracies", by="do_dropout", ax=axs[0], fontsize=11)
         
-        all_results_ADAM_sorted = all_results_ADAM.sort_values(by="do_dropout")
-        all_results_ADAM_sorted.boxplot(column =["test_accuracies"], by="do_dropout", ax=axs[1])
+        all_results.boxplot(column ="test_accuracies", by="n_neurons_molt_factor", ax=axs[1], fontsize=11)
         
-        axs[0].title.set_text('AMSGrad')
-        axs[1].title.set_text('ADAM')
-        
-        fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-        
-        all_results_AMSGrad.boxplot(column =["test_accuracies"], by="n_neurons_molt_factor", ax=axs[0])
-        all_results_ADAM.boxplot(column =["test_accuracies"], by="n_neurons_molt_factor", ax=axs[1])
-        axs[0].title.set_text('AMSGrad')
-        axs[1].title.set_text('ADAM')
+        axs[0].set_ylabel("test accuracy", fontsize=13)
+        fig.tight_layout()
     
     
     fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="lr", ax=axs[0])
-    all_results_ADAM.boxplot(column =["test_accuracies"], by="lr", ax=axs[1])
+    all_results.boxplot(column ="test_accuracies", by="lr", ax=axs[0], fontsize=11)
+    all_results.boxplot(column ="test_accuracies", by="batch_size", ax=axs[1], fontsize=11)
     
-    axs[0].title.set_text('AMSGrad')
-    axs[1].title.set_text('ADAM')
+    axs[0].set_ylabel("test accuracy", fontsize=13)
     
+    axs[0].set_xlabel("learning rate", fontsize=13)
+    axs[1].set_xlabel("batch size", fontsize=13)
+    fig.tight_layout()
     
-    fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="batch_size", ax=axs[0])
-    all_results_ADAM.boxplot(column =["test_accuracies"], by="batch_size", ax=axs[1])
-    
-    axs[0].title.set_text('AMSGrad')
-    axs[1].title.set_text('ADAM')
-    
-    fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="patience", ax=axs[0])
-    all_results_ADAM.boxplot(column =["test_accuracies"], by="patience", ax=axs[1])
-    
-    axs[0].title.set_text('AMSGrad')
-    axs[1].title.set_text('ADAM')
+    fig.suptitle("")
+    axs[0].set_title("Boxplot grouped by 'learning rate'", fontsize=16)
+    axs[1].set_title("Boxplot grouped by 'batch size'", fontsize=16)
     
     
     fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-    all_results_AMSGrad.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[0])
-    all_results_ADAM.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[1])
+    all_results.boxplot(column =["test_accuracies"], by="patience", ax=axs[0], fontsize=11)
+    all_results.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[1], fontsize=11)
     
-    axs[0].title.set_text('AMSGrad')
-    axs[1].title.set_text('ADAM')
+    axs[0].set_ylabel("test accuracy", fontsize=13)
+    
+    axs[0].set_xlabel("patience", fontsize=13)
+    axs[1].set_xlabel("data augmentation percentage", fontsize=13)
+    fig.tight_layout()
+    
+    fig.suptitle("")
+    axs[0].set_title("Boxplot grouped by 'patience'", fontsize=13)
+    axs[1].set_title("Boxplot grouped by 'data augmentation percentage'", fontsize=16)
+    
+    fig,ax=plt.subplots(figsize=(plots_dimensions[0]/2, plots_dimensions[1]))
+    all_results.boxplot(column =["test_accuracies"], by="optimizer", ax=ax, fontsize=11)
+    
+    ax.set_ylabel("test accuracy", fontsize=13)
+    
+    ax.set_xlabel("optimizer", fontsize=13)
+    fig.tight_layout()
+    
+    fig.suptitle("")
+    ax.set_title("Boxplot grouped by 'optimizer'", fontsize=16)
+    
+    
