@@ -186,7 +186,10 @@ def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model
     print(result.iloc[result["test_accuracies"].argmax()]
             .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
 
-def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10), isLeNet5:bool=False):
+def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10), isLeNet5:bool=False, exclude_low_accuracy:bool=False):
+    
+    if exclude_low_accuracy:
+        all_results=all_results[all_results["test_accuracies"]!=all_results["test_accuracies"].min()]
     
     if not isLeNet5:
         
@@ -198,7 +201,14 @@ def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10)
         all_results.boxplot(column ="test_accuracies", by="n_neurons_molt_factor", ax=axs[1], fontsize=11)
         
         axs[0].set_ylabel("test accuracy", fontsize=13)
+    
+        axs[0].set_xlabel("dropout after", fontsize=13)
+        axs[1].set_xlabel("hidden neurons molt. factor", fontsize=13)
         fig.tight_layout()
+        
+        fig.suptitle("")
+        axs[0].set_title("Boxplot grouped by 'dropout after'", fontsize=16)
+        axs[1].set_title("Boxplot grouped by 'hidden neurons molt. factor'", fontsize=16)
     
     
     fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
