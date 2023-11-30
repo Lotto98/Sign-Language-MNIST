@@ -168,37 +168,81 @@ def load_test_results(base_model_name:str):
     
     return architecture_id_to_model_name, all_model_results
 
-def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model_name:dict , architecture_id:int):
+def architectures_analysis( all_model_results:pd.DataFrame, architecture_id_to_model_name:dict ):
+    
+    means=[]
+    
+    for architecture_id in sorted(architecture_id_to_model_name.keys()):
+        
+        result = all_model_results[all_model_results["architecture_id"]==architecture_id]
+        
+        means.append( result['test_accuracies'].mean() )
+        
+    best_architecture = np.argwhere(means == np.nanmax(means)).flatten().tolist()
+    worst_architecture = np.argwhere(means == np.nanmin(means)).flatten().tolist()
+    
+    print(f"best architecture is id: {best_architecture}")
+    print(f"worst architecture is id: {worst_architecture}")
+
+def architecture_stats( all_model_results:pd.DataFrame, architecture_id_to_model_name:dict , architecture_id:int, latex:bool=False):
     
     result = all_model_results[all_model_results["architecture_id"]==architecture_id]
     
-    name = architecture_id_to_model_name[architecture_id]
-    
-    print(f"Stats for architecture: {name} (id: {architecture_id})")
-    
-    print(f"mean accuracy: {result['test_accuracies'].mean():.4f} with standard error: {result['test_accuracies'].std():.4f}\n")
-    
-    print(f"worst accuracy: {result['test_accuracies'].min():.4f} with hyperparameters:")
-    print(result.iloc[result["test_accuracies"].argmin()]
-            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
-    
-    print(f"best accuracy: {result['test_accuracies'].max():.4f} with hyperparameters:")
-    print(result.iloc[result["test_accuracies"].argmax()]
-            .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
+    if not latex:
+        name = architecture_id_to_model_name[architecture_id]
+        
+        print(f"stats for architecture: {name} (id: {architecture_id})\n")
+        
+        print(f"mean accuracy: {result['test_accuracies'].mean():.4f} with SD: {result['test_accuracies'].std():.4f}\n")
+        
+        print(f"best accuracy: {result['test_accuracies'].max():.4f}")
+        print(result.iloc[result["test_accuracies"].argmax()]
+                .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
+        
+        print(f"worst accuracy: {result['test_accuracies'].min():.4f}")
+        print(result.iloc[result["test_accuracies"].argmin()]
+                .drop(["test_accuracies", "architecture_id","n_neurons_molt_factor","do_dropout"], errors="ignore"),"\n")
+        
+        print("\n\n")
+    else:
+        
+        itemize="{itemize}"
+        
+        latex_out = f"""
+        \\item Architectural features:
+            \\begin{itemize}
+                \\item hidd. neurons molt. factor: {result["n_neurons_molt_factor"].iloc[0]}, 
+                \\item dropout after: {result["do_dropout"].iloc[0]}
+            \\end{itemize}
+            Test accuracy results:
+            \\begin{itemize}
+                \\item Mean accuracy of {result['test_accuracies'].mean():.4f} with SD of {result['test_accuracies'].std():.4f}
+                \\item Best accuracy: {result['test_accuracies'].max():.4f}
+                \\item Worst accuracy: {result['test_accuracies'].min():.4f}
+            \\end{itemize}
+        """
+        print(latex_out)
 
-def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10), isLeNet5:bool=False, exclude_low_accuracy:bool=False):
+def remove_outliers(df:pd.DataFrame, quant1:float=0.25, quant2:float=0.75):
+    Q1 = df['test_accuracies'].quantile(quant1)
+    Q3 = df['test_accuracies'].quantile(quant2)
+    IQR = Q3 - Q1    #IQR is interquartile range. 
+
+    filter = (df['test_accuracies'] >= Q1 - 1.5 * IQR) & (df['test_accuracies'] <= Q3 + 1.5 *IQR)
+    return df.loc[filter], df.loc[~filter]
+
+def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10), isLeNet5:bool=False, remove_outliers:bool=False, width_ratios:list=[1, 1]):
     
-    if exclude_low_accuracy:
-        all_results=all_results[all_results["test_accuracies"]!=all_results["test_accuracies"].min()]
+    #all_results, outliers=remove_outliers(all_results,quant1=out_quantiles[0],quant2=out_quantiles[1])
     
     if not isLeNet5:
         
-        fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
+        fig,axs=plt.subplots(1,2,figsize=plots_dimensions, gridspec_kw={'width_ratios': width_ratios})
         
         all_results_sorted = all_results.sort_values(by="do_dropout")
-        all_results_sorted.boxplot(column ="test_accuracies", by="do_dropout", ax=axs[0], fontsize=11)
+        all_results_sorted.boxplot(column ="test_accuracies", by="do_dropout", ax=axs[0], fontsize=11, showfliers = not remove_outliers)
         
-        all_results.boxplot(column ="test_accuracies", by="n_neurons_molt_factor", ax=axs[1], fontsize=11)
+        all_results.boxplot(column ="test_accuracies", by="n_neurons_molt_factor", ax=axs[1], fontsize=11, showfliers = not remove_outliers)
         
         axs[0].set_ylabel("test accuracy", fontsize=13)
     
@@ -212,8 +256,8 @@ def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10)
     
     
     fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-    all_results.boxplot(column ="test_accuracies", by="lr", ax=axs[0], fontsize=11)
-    all_results.boxplot(column ="test_accuracies", by="batch_size", ax=axs[1], fontsize=11)
+    all_results.boxplot(column ="test_accuracies", by="lr", ax=axs[0], fontsize=11, showfliers = not remove_outliers)
+    all_results.boxplot(column ="test_accuracies", by="batch_size", ax=axs[1], fontsize=11, showfliers = not remove_outliers)
     
     axs[0].set_ylabel("test accuracy", fontsize=13)
     
@@ -227,8 +271,8 @@ def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10)
     
     
     fig,axs=plt.subplots(1,2,figsize=plots_dimensions)
-    all_results.boxplot(column =["test_accuracies"], by="patience", ax=axs[0], fontsize=11)
-    all_results.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[1], fontsize=11)
+    all_results.boxplot(column =["test_accuracies"], by="patience", ax=axs[0], fontsize=11, showfliers = not remove_outliers)
+    all_results.boxplot(column =["test_accuracies"], by="data_augmentation_perc", ax=axs[1], fontsize=11, showfliers = not remove_outliers)
     
     axs[0].set_ylabel("test accuracy", fontsize=13)
     
@@ -241,7 +285,7 @@ def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10)
     axs[1].set_title("Boxplot grouped by 'data augmentation percentage'", fontsize=16)
     
     fig,ax=plt.subplots(figsize=(plots_dimensions[0]/2, plots_dimensions[1]))
-    all_results.boxplot(column =["test_accuracies"], by="optimizer", ax=ax, fontsize=11)
+    all_results.boxplot(column =["test_accuracies"], by="optimizer", ax=ax, fontsize=11, showfliers = not remove_outliers)
     
     ax.set_ylabel("test accuracy", fontsize=13)
     
@@ -250,5 +294,3 @@ def plot_hyper(all_results:pd.DataFrame, plots_dimensions:Tuple[int,int]=(20,10)
     
     fig.suptitle("")
     ax.set_title("Boxplot grouped by 'optimizer'", fontsize=16)
-    
-    
