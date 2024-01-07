@@ -151,6 +151,8 @@ def load_test_results(base_model_name:str):
     
     all_models_names = [f for f in listdir("../models/") if isfile(f"../models/{f}") and base_model_name in f]
     
+    #all_models_names = sorted(all_models_names)
+    
     architecture_id_to_model_name = {}
     results=[]
     
