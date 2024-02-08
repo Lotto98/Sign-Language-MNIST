@@ -1,6 +1,6 @@
 # Sign-Language-MNIST
 
-Final project for FOUNDATION OF MACHINE LEARNING exam (master's degree)
+Final project for FOUNDATION OF MACHINE LEARNING exam (Master's degree)
 
 Create a robust classifier to recognize American Sign Language hand poses.
 
